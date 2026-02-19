@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Uploads (user-generated content, not version-controlled)
+backend/uploads/
+uploads/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+
+node_modules/
+.env
+*.log
