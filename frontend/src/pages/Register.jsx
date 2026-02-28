@@ -9,6 +9,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [gender, setGender] = useState("");
   const [accountType, setAccountType] = useState("student");
   const [academicYear, setAcademicYear] = useState("");
   const [semester, setSemester] = useState("");
@@ -86,6 +87,7 @@ export default function Register() {
         email,
         password,
         accountType,
+        gender: gender || null,
       };
 
       // Only include academic fields for students
@@ -340,6 +342,31 @@ export default function Register() {
                     <div className="error-text">{errors.confirm}</div>
                   )}
                 </div>
+
+                {/* Gender Selection - For ALL users */}
+<div className="field">
+  <label>Gender (Optional)</label>
+  <select
+    value={gender}
+    onChange={(e) => setGender(e.target.value)}
+    style={{
+      width: "100%",
+      padding: "12px",
+      fontSize: "14px",
+      border: "1px solid #ddd",
+      borderRadius: "8px",
+      backgroundColor: "white",
+      cursor: "pointer",
+      color: gender ? "#000" : "#999",
+    }}
+  >
+    <option value="">Select gender (optional)</option>
+    <option value="Male">Male</option>
+    <option value="Female">Female</option>
+    <option value="Other">Other</option>
+    <option value="Prefer not to say">Prefer not to say</option>
+  </select>
+</div>
 
                 {/* Academic Year and Semester - Only for Students - Horizontal Layout */}
                 {accountType === "student" && (
