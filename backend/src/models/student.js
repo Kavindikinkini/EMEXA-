@@ -52,6 +52,12 @@ const studentSchema = new mongoose.Schema({
     enum: ['1st semester', '2nd semester', null],
     default: null 
   },
+  // Demographics for analytics
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', 'Prefer not to say', null],
+    default: null
+  },
   
   // Password reset fields
   resetPasswordCode: { type: String, select: false },

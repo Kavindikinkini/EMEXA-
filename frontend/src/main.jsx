@@ -18,6 +18,8 @@ import TeacherProfile from "./pages/TeacherProfile";
 import QuizPage from "./pages/quizpage";
 import AdminLogin from "./pages/AdminLogin";
 import UserManagement from "./pages/usermgt";
+import AdminAnalytics from './components/AdminAnalytics';
+import CustomAnalytics from './components/CustomAnalytics';
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherCreateQuizWrapper from "./pages/TeacherCreateQuizWrapper";
 import Permission from "./pages/Permission";
@@ -65,6 +67,24 @@ createRoot(document.getElementById("root")).render(
           path="/admin/users"
           element={<Navigate to="/admin/user-management" replace />}
         />
+
+        {/* ⭐ ADD THESE - Admin Analytics Routes */}
+<Route
+  path="/admin/analytics"
+  element={
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <AdminAnalytics />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/custom-analytics"
+  element={
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <CustomAnalytics />
+    </ProtectedRoute>
+  }
+/>
 
         {/* Permission Route */}
         <Route path="/permission" element={<Permission />} />

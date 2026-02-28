@@ -27,6 +27,7 @@ import cameraRoutes from "./src/routes/cameraRoutes.js";
 import teacherRoutes from "./src/routes/teacherRoutes.js";
 import wellnessRoutes from "./src/routes/wellnessRoutes.js";
 import teacherQuizRoutes from "./src/routes/teacherQuizRoutes.js";
+import analyticsRoutes from './src/routes/analyticsRoutes.js';
 // AI Feature Routes
 import emotionRoutes from "./src/routes/emotionRoutes.js";
 import hintRoutes from "./src/routes/hintRoutes.js";
@@ -94,6 +95,7 @@ app.use("/api/teacher", teacherRoutes);
 app.use("/api/teachers", teacherRoutes);
 app.use("/api/wellness", wellnessRoutes);
 app.use("/api/teacher-quizzes", teacherQuizRoutes);
+app.use('/api/analytics', analyticsRoutes);
 // AI Feature Routes
 app.use("/api/emotion", emotionRoutes);
 app.use("/api/hint", hintRoutes);
@@ -103,6 +105,7 @@ app.use("/api/ai-quiz", aiQuizRoutes);
 app.use("/api/wellness-ai", wellnessAIRoutes);
 app.use("/api/moods", moodRoutes);
 app.use("/api/help-support", helpSupportRoutes);
+
 
 // Health check
 app.get("/", (req, res) => {
