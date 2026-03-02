@@ -23,6 +23,7 @@ import { connectDB } from "./src/services/dbService.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import quizRoutes from "./src/routes/quizroutes.js";
+import teacherAnalyticsRoutes from './src/routes/teacherAnalyticsRoutes.js';
 import cameraRoutes from "./src/routes/cameraRoutes.js";
 import teacherRoutes from "./src/routes/teacherRoutes.js";
 import wellnessRoutes from "./src/routes/wellnessRoutes.js";
@@ -90,6 +91,7 @@ app.use((req, res, next) => {
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/quiz", quizRoutes);
+app.use('/api/teacher-analytics', teacherAnalyticsRoutes);
 app.use("/api/camera", cameraRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/teachers", teacherRoutes);

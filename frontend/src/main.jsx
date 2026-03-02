@@ -7,6 +7,7 @@ import "./pages/Form.css";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import TeacherCustomAnalytics from './components/TeacherCustomAnalytics';
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
@@ -107,6 +108,15 @@ createRoot(document.getElementById("root")).render(
               <TeacherDashboard />
             </ProtectedRoute>
           }
+        />
+        {/* Teacher Custom Analytics */}
+        <Route
+          path="/teacher/custom-analytics"
+          element={
+            <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+              <TeacherCustomAnalytics />
+            </ProtectedRoute>
+         }
         />
 
         {/* NEW: Teacher Create Quiz Route */}
