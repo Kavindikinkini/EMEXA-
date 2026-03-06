@@ -18,6 +18,83 @@ import DownloadIcon from "../assets/download.png";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
+const awardGamificationPoints = async (gamificationData) => {
+  try {
+    const token = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
+    
+    const {
+      studentId,
+      quizId,
+      attemptId,
+      percentage,
+      hintsUsed,
+      timeSpent,
+      quizTitle
+    } = gamificationData;
+
+    console.log('🎮 Awarding gamification points...', {
+      studentId,
+      quizId,
+      score: Math.round(percentage),
+      hintsUsed
+    });
+
+    // Calculate points based on performance
+    let points = Math.floor(percentage); // Base points from percentage (0-100)
+    
+    // Bonuses for high performance
+    if (percentage >= 90) points += 20; // Excellent!
+    else if (percentage >= 80) points += 10; // Great!
+    else if (percentage >= 70) points += 5; // Good!
+    
+    // Penalties for hints
+    points -= (hintsUsed * 2); // -2 points per hint
+    
+    // Time bonus (if completed quickly, under 10 minutes)
+    if (timeSpent < 600) points += 10; // 600 seconds = 10 minutes
+    
+    // Minimum points (always give at least 5 points)
+    points = Math.max(points, 5);
+
+    console.log(`🎮 Calculated points: ${points} (base: ${Math.floor(percentage)}, hints penalty: -${hintsUsed * 2})`);
+
+    // 1️⃣ Award Points
+    await axios.post(`${API_BASE}/api/gamification/points/award`, {
+      studentId,
+      points,
+      reason: `Completed: ${quizTitle}`,
+      source: 'quiz',
+      relatedId: attemptId
+    }, { headers });
+
+    console.log(`✅ Awarded ${points} points`);
+
+    // 2️⃣ Check for Achievements
+    await axios.post(`${API_BASE}/api/gamification/quiz/check-achievements`, {
+      studentId,
+      quizId,
+      attemptId
+    }, { headers });
+
+    console.log('✅ Checked achievements');
+
+    // 3️⃣ Update Streak
+    await axios.post(`${API_BASE}/api/gamification/streak/update`, {
+      studentId,
+      type: 'quiz'
+    }, { headers });
+
+    console.log('✅ Updated streak');
+
+    return { success: true, pointsAwarded: points };
+  } catch (error) {
+    console.error('❌ Gamification error:', error);
+    // Don't fail quiz submission if gamification fails
+    return { success: false, error };
+  }
+};
+
 const QuizPage = () => {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
@@ -1079,6 +1156,41 @@ useEffect(() => {
 
         if (submitResponse.data.success) {
           console.log("✅ Quiz submitted successfully:", submitResponse.data);
+          
+          // 🎮 GAMIFICATION - ADD THIS BLOCK
+          try {
+            const userStr = localStorage.getItem("user");
+            if (userStr) {
+              const user = JSON.parse(userStr);
+              const userId = user._id || user.id;
+              
+              // Calculate percentage
+              let correct = 0;
+              quizData.questions.forEach((q, index) => {
+                if (answers[index] === q.correctAnswer) {
+                  correct++;
+                }
+              });
+              const percentage = (correct / quizData.questions.length) * 100;
+              
+              // Award gamification points
+              await awardGamificationPoints({
+                studentId: userId,
+                quizId: quizId,
+                attemptId: submitResponse.data.attemptId || submitResponse.data.data?._id || submitResponse.data._id || 'temp-id',
+                percentage: percentage,
+                hintsUsed: hintsUsedCount,
+                timeSpent: timeTaken,
+                quizTitle: quizData.title
+              });
+              
+              console.log('🎉 Gamification complete!');
+            }
+          } catch (gamificationError) {
+            console.error('⚠️ Gamification failed (quiz still submitted):', gamificationError);
+            // Don't fail the quiz submission
+          }
+          // 🎮 END GAMIFICATION BLOCK
         }
       } catch (submitError) {
         console.error("❌ Error submitting quiz to /submit endpoint:", submitError);
