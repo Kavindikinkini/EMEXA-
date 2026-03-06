@@ -28,6 +28,8 @@ import teacherRoutes from "./src/routes/teacherRoutes.js";
 import wellnessRoutes from "./src/routes/wellnessRoutes.js";
 import teacherQuizRoutes from "./src/routes/teacherQuizRoutes.js";
 import analyticsRoutes from './src/routes/analyticsRoutes.js';
+import gamificationRoutes from './src/routes/gamificationRoutes.js'; 
+import educationalGamesRoutes from './src/routes/educationalGamesRoutes.js';
 // AI Feature Routes
 import emotionRoutes from "./src/routes/emotionRoutes.js";
 import hintRoutes from "./src/routes/hintRoutes.js";
@@ -40,6 +42,7 @@ import aiQuizRoutes from "./src/routes/aiQuizRoutes.js";
 import wellnessAIRoutes from "./src/routes/wellnessAIRoutes.js";
 import moodRoutes from "./src/routes/moodRoutes.js";
 import helpSupportRoutes from "./src/routes/helpSupportRoutes.js";
+
 
 const app = express();
 const httpServer = createServer(app);
@@ -96,6 +99,7 @@ app.use("/api/teachers", teacherRoutes);
 app.use("/api/wellness", wellnessRoutes);
 app.use("/api/teacher-quizzes", teacherQuizRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/gamification', gamificationRoutes);
 // AI Feature Routes
 app.use("/api/emotion", emotionRoutes);
 app.use("/api/hint", hintRoutes);
@@ -105,6 +109,7 @@ app.use("/api/ai-quiz", aiQuizRoutes);
 app.use("/api/wellness-ai", wellnessAIRoutes);
 app.use("/api/moods", moodRoutes);
 app.use("/api/help-support", helpSupportRoutes);
+app.use('/api/educational-games', educationalGamesRoutes);
 
 
 // Health check

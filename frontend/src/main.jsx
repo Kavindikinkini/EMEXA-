@@ -24,6 +24,8 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherCreateQuizWrapper from "./pages/TeacherCreateQuizWrapper";
 import Permission from "./pages/Permission";
 import WellnessCentre from "./pages/WellnessCentre";
+import GamificationDashboard from './components/GamificationDashboard';
+import EducationalGames from "./pages/EducationalGames";
 import Notification from "./pages/Notification";
 import RequireAuth from "./components/RequireAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -157,6 +159,23 @@ createRoot(document.getElementById("root")).render(
             </ProtectedRoute>
           }
         />
+        {/* Gamification Dashboard - Student only */}
+<Route
+  path="/gamification"
+  element={
+    <ProtectedRoute allowedRoles={["student"]}>
+      <GamificationDashboard />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/educational-games"
+  element={
+    <ProtectedRoute allowedRoles={["student"]}>
+      <EducationalGames />
+    </ProtectedRoute>
+  }
+/>
 
         {/* Legacy profile routes with userId parameter - redirect to base routes */}
         <Route
