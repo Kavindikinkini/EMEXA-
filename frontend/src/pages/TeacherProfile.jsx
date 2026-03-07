@@ -179,8 +179,9 @@ const PasswordModal = ({ isOpen, onClose, onSave }) => {
   );
 };
 
-const TeacherProfile = () => {
+const TeacherProfile = (props) => {
   const navigate = useNavigate();
+  const { setActiveMenuItem: setParentMenuItem } = props || {};
   const location = useLocation();
   const [activeMenuItem, setActiveMenuItem] = useState("profile");
   const [activeTab, setActiveTab] = useState("account");
@@ -234,7 +235,8 @@ const TeacherProfile = () => {
       ),
       onClick: () => {
         setActiveMenuItem("dashboard");
-        navigate("/teacher-dashboard");
+        if (setParentMenuItem) setParentMenuItem("dashboard");
+        else navigate("/teacher-dashboard");
       },
     },
     {
@@ -257,7 +259,8 @@ const TeacherProfile = () => {
       ),
       onClick: () => {
         setActiveMenuItem("quizzes");
-        navigate("/teacher-dashboard", { state: { activeMenu: "quizzes" } });
+        if (setParentMenuItem) setParentMenuItem("quizzes");
+        else navigate("/teacher-dashboard", { state: { activeMenu: "quizzes" } });
       },
     },
     {
@@ -280,7 +283,8 @@ const TeacherProfile = () => {
       ),
       onClick: () => {
         setActiveMenuItem("profile");
-        navigate("/teacher-profile");
+        if (setParentMenuItem) setParentMenuItem("profile");
+        else navigate("/teacher-profile");
       },
     },
   ];
@@ -1670,8 +1674,18 @@ const TeacherProfile = () => {
     );
   }
 
-  // Normal teacher viewing their own profile
-  // Normal teacher viewing their own profile
+  // If embedded inside TeacherDashboard, just render content (no extra Header/Sidebar)
+  if (setParentMenuItem) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+          {profileContent}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal teacher viewing their own profile (standalone page)
   return (
     <div className="min-h-screen bg-gray-50">
       <Header

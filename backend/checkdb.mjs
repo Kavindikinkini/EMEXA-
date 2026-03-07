@@ -20,3 +20,15 @@ const hint = await db.collection('hintusages').findOne({});
 console.log('Hint usage fields:', JSON.stringify(hint, null, 2));
 
 await mongoose.disconnect();
+const attempt = await db.collection('quizattempts').findOne({});
+console.log('userId:', attempt?.userId);
+
+// Check students collection
+const student = await db.collection('students').findOne({ _id: attempt?.userId });
+console.log('Found in students:', student?.name, student?.email);
+
+// Check users collection count
+const userCount = await db.collection('users').countDocuments({ role: 'student' });
+const studentCount = await db.collection('students').countDocuments();
+console.log('Users with role=student:', userCount);
+console.log('Students collection count:', studentCount);

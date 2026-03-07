@@ -28,6 +28,19 @@ const hintUsageSchema = new mongoose.Schema({
     type: Number,
     default: 1 // Each hint deducts 1 mark
   },
+  effortLevel: {
+    type: String,
+    enum: ['none', 'minimal', 'some', 'good', 'strong', 'unknown'],
+    default: 'unknown'
+  },
+  timeSpentBeforeHint: {
+    type: Number,
+    default: 0
+  },
+  quizId: {
+    type: String,
+    default: null
+  },
   timestamp: {
     type: Date,
     default: Date.now
@@ -36,6 +49,8 @@ const hintUsageSchema = new mongoose.Schema({
 
 // Index for efficient queries
 hintUsageSchema.index({ userId: 1, sessionId: 1 });
+hintUsageSchema.index({ userId: 1, sessionId: 1, questionId: 1 });
+hintUsageSchema.index({ quizId: 1, questionIndex: 1 });
 
 const HintUsage = mongoose.model('HintUsage', hintUsageSchema);
 

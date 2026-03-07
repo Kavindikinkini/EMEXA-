@@ -1,32 +1,26 @@
 // backend/src/services/wellnessAIService.js
-import { HfInference } from '@huggingface/inference';
+import Groq from 'groq-sdk';
 
 class WellnessAIService {
   constructor() {
-    this.hf = null;
+    this.groq = null;
     this.initialized = false;
-    // Using Meta's Llama model - completely FREE!
-    this.model = 'meta-llama/Llama-3.2-3B-Instruct';
+    this.model = 'llama-3.3-70b-versatile';
   }
 
   _ensureInitialized() {
     if (this.initialized) return;
-    
-    // FIXED: Check for multiple possible environment variable names
-    const apiKey = process.env.HUGGINGFACE_API_KEY ||      // ✅ Your key name
-                   process.env.HUGGING_FACE_API_KEY ||     // Old name
-                   process.env.WELLNESS_AI_API_KEY ||      // Alternative
-                   process.env.HF_API_KEY;                  // Short form
-    
+
+    const apiKey = process.env.GROQ_API_KEY;
+
     if (!apiKey) {
-      console.error('❌ Hugging Face API key not configured');
-      console.error('   Please set one of: HUGGINGFACE_API_KEY, HUGGING_FACE_API_KEY, WELLNESS_AI_API_KEY, or HF_API_KEY');
+      console.error('❌ Groq API key not configured. Please set GROQ_API_KEY in .env');
       throw new Error('Wellness AI not configured');
     }
-    
-    this.hf = new HfInference(apiKey);
-    
-    console.log('✅ Wellness AI Service initialized with Hugging Face (FREE!)');
+
+    this.groq = new Groq({ apiKey });
+
+    console.log('✅ Wellness AI Service initialized with Groq (FREE!)');
     console.log('🧘 Using model:', this.model);
     this.initialized = true;
   }
@@ -44,25 +38,14 @@ class WellnessAIService {
       
       console.log('🧠 Generating personalized wellness advice...');
 
-      let fullResponse = '';
-      
-      for await (const chunk of this.hf.chatCompletionStream({
+      const completion = await this.groq.chat.completions.create({
         model: this.model,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
+        messages: [{ role: "user", content: prompt }],
         max_tokens: 200,
         temperature: 0.7
-      })) {
-        if (chunk.choices && chunk.choices[0]?.delta?.content) {
-          fullResponse += chunk.choices[0].delta.content;
-        }
-      }
+      });
 
-      const advice = fullResponse.trim();
+      const advice = completion.choices[0]?.message?.content?.trim() || '';
       console.log('✅ Generated personalized advice');
 
       return {
@@ -93,20 +76,14 @@ class WellnessAIService {
     try {
       const prompt = `You are a wellness coach. Generate ONE short wellness tip for students in 1-2 sentences. Focus on: ${userContext.recentActivity || 'study-life balance'}.`;
 
-      let fullResponse = '';
-      
-      for await (const chunk of this.hf.chatCompletionStream({
+      const completion = await this.groq.chat.completions.create({
         model: this.model,
         messages: [{ role: "user", content: prompt }],
         max_tokens: 100,
         temperature: 0.8
-      })) {
-        if (chunk.choices && chunk.choices[0]?.delta?.content) {
-          fullResponse += chunk.choices[0].delta.content;
-        }
-      }
+      });
 
-      const tip = fullResponse.trim();
+      const tip = completion.choices[0]?.message?.content?.trim() || '';
       
       return {
         success: true,
@@ -158,7 +135,7 @@ class WellnessAIService {
         }
       }
 
-      const insights = fullResponse.trim();
+      const insights = fullResponse.trim()
 
       return {
         success: true,
@@ -209,20 +186,14 @@ class WellnessAIService {
 
       console.log('💬 Generating chatbot response...');
 
-      let fullResponse = '';
-      
-      for await (const chunk of this.hf.chatCompletionStream({
+      const completion = await this.groq.chat.completions.create({
         model: this.model,
         messages: messages,
         max_tokens: 200,
         temperature: 0.7
-      })) {
-        if (chunk.choices && chunk.choices[0]?.delta?.content) {
-          fullResponse += chunk.choices[0].delta.content;
-        }
-      }
+      });
 
-      const chatResponse = fullResponse.trim();
+      const chatResponse = completion.choices[0]?.message?.content?.trim() || '';
       console.log('✅ Generated chatbot response');
 
       return {
