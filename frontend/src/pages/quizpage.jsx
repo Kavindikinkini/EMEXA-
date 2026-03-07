@@ -130,6 +130,7 @@ const QuizPage = () => {
   const [videoStream, setVideoStream] = useState(null);
   const videoRef = useRef(null);
   const [hintsUsedCount, setHintsUsedCount] = useState(0);
+  const [hintDeductions, setHintDeductions] = useState([]);  
   const [showCameraPermissionDialog, setShowCameraPermissionDialog] =
     useState(false);
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
@@ -691,12 +692,13 @@ const QuizPage = () => {
     return () => clearInterval(timer);
   }, [quizStartTime]);
 
-  // Reset timer when question changes
   useEffect(() => {
     setTimeOnQuestion(0);
     setShowBulb(false);
     setShowEmojiDialog(false);
     setShowHints(false);
+    // Don't reset revealedHints here - that's intentional (persists per question)
+    // But DO reset showHints so hints panel closes on question change
   }, [currentQuestion]);
 
   // ✅ NEW: Block browser navigation during quiz
@@ -905,8 +907,9 @@ useEffect(() => {
       request;
 
     if (type === "existing") {
-      // Show existing hints from memory
       console.log("✅ Showing existing hints from memory");
+      // Reset revealed state so student must reveal one by one again
+      setRevealedHints(prev => ({ ...prev, [questionIndex]: [] }));
       setShowHints(true);
       return;
     }
@@ -966,6 +969,9 @@ useEffect(() => {
             questionIndex: questionIndex,
             questionText: question.text,
             options: question.options || [],
+            previousAttempts: Object.keys(answers).length > 0 ? 1 : 0,
+            timeSpentSeconds: timeOnQuestion,
+            quizId: quizId,               
           }),
         });
 
@@ -998,6 +1004,16 @@ useEffect(() => {
           // Increment hints used count
           if (!data.data.alreadyRequested) {
             setHintsUsedCount((prev) => prev + 1);
+          }
+
+          // Store effort data for score breakdown (Feature 2)
+          if (data.data.effortLevel && !data.data.alreadyRequested) {
+            setHintDeductions(prev => [...prev, {
+              questionIndex: questionIndex,
+              effortLevel: data.data.effortLevel,
+              deduction: data.data.deduction,
+              timeSpentSeconds: timeOnQuestion
+            }]);
           }
 
           setShowHints(true);
@@ -1246,7 +1262,9 @@ useEffect(() => {
             userId: userId,
             quizId: quizId,
             sessionId: sessionId,
-            rawScore: rawScore,
+            rawScore: Math.round(rawScore),
+            scoreOutOf: quizData.questions.length,
+            percentage: Math.round(rawScore),
             totalQuestions: quizData.questions.length,
             timeTaken: timeTaken,
             answers: Object.entries(answers).map(([index, answer]) => ({
@@ -1292,8 +1310,6 @@ useEffect(() => {
         finalScore: 0,
       });
     }
-
-    // Don't set quizSubmitted here - already set after backend confirmation
   };
 
   const calculateScore = () => {
@@ -1304,23 +1320,16 @@ useEffect(() => {
       }
     });
 
-    // Calculate score out of 100
     const totalQuestions = quizData.questions.length;
     const marksPerQuestion = 100 / totalQuestions;
     const baseScore = correct * marksPerQuestion;
 
-    // Deduct 1 mark for each hint used
-    const finalScore = Math.max(0, baseScore - hintsUsedCount);
+    // FEATURE 2: Use effort-based deductions if available, else fallback to flat -1 per hint
+    const totalDeduction = hintDeductions.length > 0
+      ? hintDeductions.reduce((sum, h) => sum + (h.deduction || 1), 0)
+      : hintsUsedCount;
 
-    // console.log("📊 Score Calculation:", {
-    //   correct,
-    //   totalQuestions,
-    //   marksPerQuestion,
-    //   baseScore,
-    //   hintsUsed: hintsUsedCount,
-    //   finalScore,
-    // });
-
+    const finalScore = Math.max(0, baseScore - totalDeduction);
     return finalScore;
   };
 
@@ -1736,11 +1745,37 @@ useEffect(() => {
               </div>
 
               {hintsUsedCount > 0 && (
-                <div className="flex justify-between items-center py-2 border-b border-red-200">
-                  <span className="text-gray-700">Hints Used Penalty:</span>
-                  <span className="font-bold text-orange-600">
-                    - {hintsUsedCount} mark{hintsUsedCount > 1 ? "s" : ""}
-                  </span>
+                <div className="py-2 border-b border-red-200">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-700">Hints Used Penalty:</span>
+                    <span className="font-bold text-orange-600">
+                      - {hintDeductions.length > 0
+                          ? hintDeductions.reduce((s, h) => s + (h.deduction || 1), 0).toFixed(1)
+                          : hintsUsedCount} pts
+                    </span>
+                  </div>
+                  {/* FEATURE 2: Per-hint effort breakdown */}
+                  {hintDeductions.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {hintDeductions.map((h, i) => {
+                        const effortColors = {
+                          none: 'text-red-500', minimal: 'text-orange-500',
+                          some: 'text-yellow-600', good: 'text-blue-500', strong: 'text-green-500'
+                        };
+                        const effortIcons = {
+                          none: '⚠️', minimal: '📉', some: '🙂', good: '👍', strong: '💪'
+                        };
+                        return (
+                          <div key={i} className="flex justify-between text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded">
+                            <span>{effortIcons[h.effortLevel] || '📊'} Q{h.questionIndex + 1} — {h.effortLevel} effort</span>
+                            <span className={`font-medium ${effortColors[h.effortLevel] || 'text-gray-500'}`}>
+                              −{h.deduction} pts
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1756,7 +1791,7 @@ useEffect(() => {
 
             {hintsUsedCount > 0 && (
               <p className="text-sm text-gray-600 italic">
-                💡 Each hint used deducts 1 mark from your final score
+                💡 Hint deductions are based on how long you tried before asking — longer effort = smaller penalty
               </p>
             )}
           </div>
@@ -2211,20 +2246,35 @@ useEffect(() => {
             {/* Hints Section */}
             {showHints && (
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-300 mb-6">
-                <div className="flex items-center gap-2 mb-5">
-                  <Lightbulb className="w-6 h-6 text-blue-600" />
-                  <h3 className="font-bold text-lg text-gray-800">
-                    {aiHints[currentQuestion]
-                      ? `🤖 AI-Generated Hints (${
-                          (Array.isArray(aiHints[currentQuestion])
-                            ? aiHints[currentQuestion]
-                            : [aiHints[currentQuestion]]
-                          ).length
-                        })`
-                      : "📚 Teacher Hints"}
-                  </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb className="w-6 h-6 text-indigo-600" />
+                    <h3 className="font-bold text-lg text-gray-800">
+                      {aiHints[currentQuestion] ? "🧠 Socratic Guidance" : "📚 Teacher Hints"}
+                    </h3>
+                    {aiHints[currentQuestion] && (
+                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                        Think, don't copy
+                      </span>
+                    )}
+                  </div>
+                  {/* Effort badge */}
+                  {aiHints[currentQuestion] && hintDeductions.find(h => h.questionIndex === currentQuestion) && (() => {
+                    const d = hintDeductions.find(h => h.questionIndex === currentQuestion);
+                    const effortColors = { none:'bg-red-100 text-red-700', minimal:'bg-orange-100 text-orange-700', some:'bg-yellow-100 text-yellow-700', good:'bg-blue-100 text-blue-700', strong:'bg-green-100 text-green-700' };
+                    const effortIcons = { none:'⚠️', minimal:'📉', some:'🙂', good:'👍', strong:'💪' };
+                    return (
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${effortColors[d.effortLevel] || 'bg-gray-100 text-gray-600'}`}>
+                        {effortIcons[d.effortLevel] || '📊'} {d.effortLevel} effort · −{d.deduction}pts
+                      </span>
+                    );
+                  })()}
                 </div>
-
+                {aiHints[currentQuestion] && (
+                  <p className="text-xs text-gray-500 mb-4 italic">
+                    These are reflective questions to guide your thinking — not answers. Use them to find the answer yourself.
+                  </p>
+                )}
                 {/* AI Hints (if available) */}
                 {aiHints[currentQuestion] ? (
                   <>
@@ -2236,8 +2286,7 @@ useEffect(() => {
                           : [aiHints[currentQuestion]]
                         ).length
                       }{" "}
-                      hints available. Each hint provides additional
-                      information.
+                      guiding questions. Reveal them one by one — each one helps you think deeper.
                     </p>
 
                     <div className="space-y-3">
@@ -2259,20 +2308,18 @@ useEffect(() => {
                               {!questionRevealedHints.includes(index) && (
                                 <button
                                   onClick={() => handleRevealHint(index)}
-                                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 px-2 py-0.5 rounded hover:bg-indigo-50 transition-all"
                                 >
-                                  Reveal
+                                  Reveal Q{index + 1}
                                 </button>
                               )}
                             </div>
                             {questionRevealedHints.includes(index) && (
                               <div className="flex items-start gap-3">
-                                <p className="text-gray-700 flex-1">{hint}</p>
-                                {index === 0 && (
-                                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium flex-shrink-0">
-                                    -1 mark
-                                  </span>
-                                )}
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center mt-0.5">
+                                  {index + 1}
+                                </span>
+                                <p className="text-gray-700 flex-1 text-sm leading-relaxed">{hint}</p>
                               </div>
                             )}
                           </div>

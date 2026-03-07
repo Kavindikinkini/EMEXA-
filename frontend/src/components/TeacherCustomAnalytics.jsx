@@ -7,7 +7,7 @@ import Sidebar from '../components/sidebarorigin';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
-const TeacherCustomAnalytics = () => {
+const TeacherCustomAnalytics = ({ setActiveMenuItem: setParentMenuItem }) => {
   const navigate = useNavigate();
   
   const adminToken = localStorage.getItem("adminToken");
@@ -46,8 +46,8 @@ const TeacherCustomAnalytics = () => {
         </svg>
       ),
       onClick: () => {
-        setActiveMenuItem("dashboard");
-        navigate("/teacher-dashboard");
+        if (setParentMenuItem) setParentMenuItem("dashboard");
+        else navigate("/teacher-dashboard");
       }
     },
     {
@@ -588,6 +588,10 @@ const TeacherCustomAnalytics = () => {
         <CustomAnalyticsContent />
       </AdminViewWrapper>
     );
+  }
+
+  if (setParentMenuItem) {
+    return <CustomAnalyticsContent />;
   }
 
   return (

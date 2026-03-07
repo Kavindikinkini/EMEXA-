@@ -18,7 +18,7 @@ const emotionLogSchema = new mongoose.Schema({
   },
   emotion: {
     type: String,
-    enum: ['happy', 'sad', 'angry', 'confused', 'neutral', 'surprised', 'fear'],
+    enum: ['happy', 'sad', 'angry', 'confused', 'neutral', 'anxious'],
     required: true
   },
   confidence: {
@@ -26,6 +26,12 @@ const emotionLogSchema = new mongoose.Schema({
     min: 0,
     max: 1,
     required: true
+  },
+  frictionScore: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 1
   },
   timestamp: {
     type: Date,
@@ -35,6 +41,7 @@ const emotionLogSchema = new mongoose.Schema({
 
 // Index for efficient queries
 emotionLogSchema.index({ userId: 1, sessionId: 1, questionIndex: 1 });
+emotionLogSchema.index({ sessionId: 1 });
 
 const EmotionLog = mongoose.model('EmotionLog', emotionLogSchema);
 
