@@ -11,6 +11,7 @@ import Sidebar from "../components/sidebarorigin";
 import Header from "../components/headerorigin";
 import PersonalAnalytics from '../components/PersonalAnalytics';
 import StudyRecommendations from '../components/StudyRecommendations';
+import BurnoutDetection from '../components/BurnoutDetection';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTime12Hour = (time24) => {
@@ -987,6 +988,9 @@ const StudentDashboard = () => {
             {/* AI Study Recommendations */}
             <div className="mt-6">
               <StudyRecommendations />
+            </div>
+            <div className="mt-6">
+              <BurnoutDetection />
             </div>
           </div>
         </div>
