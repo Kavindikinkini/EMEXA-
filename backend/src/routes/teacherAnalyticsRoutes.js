@@ -10,31 +10,28 @@ import { protect, authorize } from '../middleware/auth.middleware.js';
 import Student from '../models/student.js';
 import QuizAttempt from '../models/quizAttempt.js';
 import TeacherQuiz from '../models/teacherQuiz.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// Get all students who took teacher's quizzes
 router.get('/my-students', protect, authorize('teacher'), async (req, res) => {
   try {
     const teacherId = req.user._id;
-    
-    // Get all quizzes created by this teacher
     const teacherQuizzes = await TeacherQuiz.find({ teacherId }).select('_id');
     const quizIds = teacherQuizzes.map(q => q._id);
-    
-    // Get all unique students who attempted these quizzes
-    const attempts = await QuizAttempt.find({ 
-      quizId: { $in: quizIds } 
-    }).distinct('studentId');
-    
-    // Get student details
-    const students = await Student.find({
-      _id: { $in: attempts },
-      status: 'Active'
-    }).select('_id name email studentId');
-    
+
+    const studentIds = await QuizAttempt.find({
+      quizId: { $in: quizIds }
+    }).distinct('userId'); // ← use 'userId' not 'studentId'
+
+    // Query 'users' collection directly, not Student model
+    const db = req.app.locals.db || mongoose.connection.db;
+    const students = await mongoose.connection.db.collection('users').find({
+      _id: { $in: studentIds.map(id => new mongoose.Types.ObjectId(id.toString())) },
+      role: 'student'
+    }).project({ _id: 1, name: 1, email: 1, studentId: 1 }).toArray();
+
     console.log(`✅ Teacher ${teacherId} has ${students.length} students`);
-    
     res.json(students);
   } catch (error) {
     console.error('❌ Error fetching teacher students:', error);
@@ -51,15 +48,13 @@ router.get('/class-analytics', protect, authorize('teacher'), async (req, res) =
     const quizzes = await TeacherQuiz.find({ teacherId });
     const quizIds = quizzes.map(q => q._id);
     
-    // Get all attempts for these quizzes
     const attempts = await QuizAttempt.find({ 
       quizId: { $in: quizIds } 
-    }).populate('studentId', 'name email');
+    });
     
-    // Calculate class-wide stats
-    const totalStudents = new Set(attempts.map(a => a.studentId?._id?.toString())).size;
+    const totalStudents = new Set(attempts.map(a => a.userId?.toString())).size;
     const totalAttempts = attempts.length;
-    const avgScore = attempts.reduce((sum, a) => sum + a.score, 0) / (attempts.length || 1);
+    const avgScore = attempts.reduce((sum, a) => sum + (a.finalScore || 0), 0) / (attempts.length || 1);
     
     // Get emotion distribution across all attempts
     const EmotionLog = (await import('../models/emotionLog.js')).default;
@@ -91,10 +86,10 @@ router.get('/class-analytics', protect, authorize('teacher'), async (req, res) =
       },
       emotionDistribution: emotionDist,
       recentAttempts: attempts.slice(-10).map(a => ({
-        studentName: a.studentId?.name || 'Unknown',
-        score: a.score,
-        date: a.submittedAt,
-        hintsUsed: a.hintsUsed
+        studentName: 'Student',
+        score: a.finalScore || 0,
+        date: a.completedAt,
+        hintsUsed: a.hintsUsed || 0
       }))
     });
     
@@ -116,7 +111,7 @@ router.get('/student-patterns/:studentId', protect, authorize('teacher'), async 
     const quizIds = teacherQuizzes.map(q => q._id);
     
     const studentAttempt = await QuizAttempt.findOne({
-      studentId,
+      userId: studentId,  
       quizId: { $in: quizIds }
     });
     
@@ -149,7 +144,7 @@ router.get('/student-correlation/:studentId', protect, authorize('teacher'), asy
     const quizIds = teacherQuizzes.map(q => q._id);
     
     const studentAttempt = await QuizAttempt.findOne({
-      studentId,
+      userId: studentId,  
       quizId: { $in: quizIds }
     });
     
