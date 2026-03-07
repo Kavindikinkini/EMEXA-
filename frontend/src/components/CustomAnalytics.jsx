@@ -181,9 +181,19 @@ const CustomAnalytics = () => {
 
             {/* Input Section */}
             <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Student for Analysis
-              </label>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="bg-emerald-50 p-2 rounded-lg">
+                  <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <label className="text-sm font-semibold text-gray-800">
+                  Select Student for Analysis
+                </label>
+                <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                  {students.length} students available
+                </span>
+              </div>
               
               {/* Student Dropdown */}
               <div className="flex gap-4">
@@ -191,16 +201,16 @@ const CustomAnalytics = () => {
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
                   disabled={loadingStudents}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-emerald-500 disabled:opacity-50 text-sm font-medium bg-white shadow-sm transition-all"
                 >
                   <option value="">
-                    {loadingStudents ? 'Loading students...' : 
-                     students.length === 0 ? 'No students found' : 
-                     'Select a student...'}
+                    {loadingStudents ? '⏳ Loading students...' :
+                     students.length === 0 ? 'No students found' :
+                     '👤 Search and select a student...'}
                   </option>
                   {students.map(student => (
                     <option key={student._id} value={student._id}>
-                      {student.name} • {student.studentId || student._id.slice(-6)} • {student.email}
+                      {student.name}  |  ID: {student.studentId || student._id.slice(-6).toUpperCase()}  |  {student.email}
                     </option>
                   ))}
                 </select>

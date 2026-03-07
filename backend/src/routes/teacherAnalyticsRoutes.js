@@ -52,7 +52,21 @@ router.get('/class-analytics', protect, authorize('teacher'), async (req, res) =
       quizId: { $in: quizIds } 
     });
     
-    const totalStudents = new Set(attempts.map(a => a.userId?.toString())).size;
+    // Get student names from users collection
+    const userIds = [...new Set(attempts.map(a => a.userId?.toString()).filter(Boolean))];
+    const objIds = userIds.map(id => {
+      try { return new mongoose.Types.ObjectId(id); } catch(e) { return id; }
+    });
+    const users = await mongoose.connection.db.collection('users')
+      .find({ _id: { $in: objIds } })
+      .project({ _id: 1, name: 1 }).toArray();
+    const studentsCol = await mongoose.connection.db.collection('students')
+      .find({ _id: { $in: objIds } })
+      .project({ _id: 1, name: 1 }).toArray();
+    const userMap = {};
+    [...users, ...studentsCol].forEach(u => { userMap[u._id.toString()] = u.name; });
+
+    const totalStudents = userIds.length;
     const totalAttempts = attempts.length;
     const avgScore = attempts.reduce((sum, a) => sum + (a.finalScore || 0), 0) / (attempts.length || 1);
     
@@ -86,8 +100,8 @@ router.get('/class-analytics', protect, authorize('teacher'), async (req, res) =
       },
       emotionDistribution: emotionDist,
       recentAttempts: attempts.slice(-10).map(a => ({
-        studentName: 'Student',
-        score: a.finalScore || 0,
+        studentName: userMap[a.userId?.toString()] || 'Unknown',
+        score: Math.round((a.finalScore || 0) * 100) / 100,
         date: a.completedAt,
         hintsUsed: a.hintsUsed || 0
       }))
