@@ -111,8 +111,9 @@ app.use("/api/ai-quiz", aiQuizRoutes);
 app.use("/api/wellness-ai", wellnessAIRoutes);
 app.use("/api/moods", moodRoutes);
 app.use("/api/help-support", helpSupportRoutes);
+import studyRecommendationRoutes from './src/routes/studyRecommendationRoutes.js';
 app.use('/api/educational-games', educationalGamesRoutes);
-
+app.use('/api/study-recommendations', studyRecommendationRoutes);
 
 // Health check
 app.get("/", (req, res) => {
