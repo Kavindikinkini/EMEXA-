@@ -43,7 +43,8 @@ import aiQuizRoutes from "./src/routes/aiQuizRoutes.js";
 import wellnessAIRoutes from "./src/routes/wellnessAIRoutes.js";
 import moodRoutes from "./src/routes/moodRoutes.js";
 import helpSupportRoutes from "./src/routes/helpSupportRoutes.js";
-import burnoutRoutes from './src/routes/burnoutRoutes.js';
+import studyRecommendationRoutes from './src/routes/studyRecommendationRoutes.js';
+import reflectionRoutes from './src/routes/reflectionRoutes.js';
 
 
 const app = express();
@@ -112,10 +113,9 @@ app.use("/api/ai-quiz", aiQuizRoutes);
 app.use("/api/wellness-ai", wellnessAIRoutes);
 app.use("/api/moods", moodRoutes);
 app.use("/api/help-support", helpSupportRoutes);
-import studyRecommendationRoutes from './src/routes/studyRecommendationRoutes.js';
 app.use('/api/educational-games', educationalGamesRoutes);
 app.use('/api/study-recommendations', studyRecommendationRoutes);
-app.use('/api/burnout', burnoutRoutes);
+app.use('/api/reflections', reflectionRoutes);
 
 // Health check
 app.get("/", (req, res) => {

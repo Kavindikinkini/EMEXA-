@@ -15,6 +15,7 @@ import { io } from "socket.io-client";
 import teacherQuizService from "../services/teacherQuizService";
 import headerLogo from "../assets/headerlogo.png";
 import DownloadIcon from "../assets/download.png";
+import SelfReflectionModal from '../components/SelfReflectionModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
@@ -135,6 +136,7 @@ const QuizPage = () => {
     useState(false);
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
   const [bulbVisible, setBulbVisible] = useState(false);
+  const [showReflection, setShowReflection] = useState(false);
 
   // Load quiz data on component mount
   useEffect(() => {
@@ -1842,6 +1844,17 @@ useEffect(() => {
                             }`}
                           .
                         </p>
+                        {/* Self Reflection Trigger */}
+<div className="mt-5 pt-4 border-t border-blue-200">
+  <button
+    onClick={() => setShowReflection(true)}
+    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center justify-center gap-2"
+  >
+    📖 Write Your Self-Reflection
+    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">~2 min</span>
+  </button>
+  <p className="text-center text-xs text-blue-400 mt-2">Compare how you felt vs what AI detected</p>
+</div>
                       </div>
                     )}
                 </>
@@ -1852,6 +1865,18 @@ useEffect(() => {
               )}
             </div>
           )}
+
+          {showReflection && (
+  <SelfReflectionModal
+    attemptId={aiFeedback?.attemptId}
+    quizId={quizId}
+    quizTitle={quizData?.title}
+    actualScore={aiFeedback?.score || 0}
+    aiDetectedEmotion={aiFeedback?.emotionalSummary?.mostCommonEmotion}
+    onClose={() => setShowReflection(false)}
+    onSubmitted={() => setShowReflection(false)}
+  />
+)}
 
           {quizData.questions.map((question, index) => {
             const userAnswer = answers[index];
