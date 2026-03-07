@@ -10,6 +10,7 @@ import AdminViewWrapper from "../components/AdminViewWrapper";
 import Sidebar from "../components/sidebarorigin";
 import Header from "../components/headerorigin";
 import PersonalAnalytics from '../components/PersonalAnalytics';
+import StudyRecommendations from '../components/StudyRecommendations';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTime12Hour = (time24) => {
@@ -982,6 +983,11 @@ const StudentDashboard = () => {
 
             {/* Personal Analytics with REAL DATA */}
             <PersonalAnalytics userId={dashboardData?._id} />
+
+            {/* AI Study Recommendations */}
+            <div className="mt-6">
+              <StudyRecommendations />
+            </div>
           </div>
         </div>
       </div>
