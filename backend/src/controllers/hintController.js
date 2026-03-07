@@ -1,7 +1,6 @@
 import HintUsage from '../models/hintUsage.js';
 import { getHfClient } from '../services/hfClient.js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
+import Groq from 'groq-sdk';
 // ── Feature 2: Effort-based deduction helpers ──────────────────────
 const calculateEffortDeduction = (timeSpentSeconds, previousAttempts) => {
   let deduction = 2;
@@ -23,14 +22,6 @@ const getEffortLevel = (timeSpentSeconds, previousAttempts) => {
   return 'strong';
 };
 
-// ── Feature 1: Gemini Socratic hint generator ──────────────────────
-const getGeminiClient = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  console.log('🔑 GEMINI_API_KEY present:', !!apiKey, apiKey ? `(starts with: ${apiKey.substring(0,8)}...)` : '(MISSING)');
-  if (!apiKey) return null;
-  return new GoogleGenerativeAI(apiKey);
-};
-
 const getFallbackSocraticHints = () => [
   'What do you already know about the core concept being tested here?',
   'If you had to explain this topic to a friend in one sentence, what would you say?',
@@ -39,10 +30,13 @@ const getFallbackSocraticHints = () => [
 ];
 
 const generateSocraticHints = async (questionText, options, previousAttempts) => {
-  const gemini = getGeminiClient();
-  if (!gemini) return getFallbackSocraticHints();
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    console.warn('⚠️ No GROQ_API_KEY — using fallback hints');
+    return getFallbackSocraticHints();
+  }
+  const groq = new Groq({ apiKey });
 
-  const model = gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
   const optionsText = options.map((o, i) => `${String.fromCharCode(65 + i)}. ${o}`).join(', ');
 
   const prompt = `You are a Socratic tutor. STRICTLY FORBIDDEN: revealing the answer, naming which option is correct, or giving factual explanations.
@@ -57,8 +51,16 @@ Q3: [question challenging assumptions]
 Q4: [question to narrow reasoning]`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      max_tokens: 300,
+    });
+
+    const text = completion.choices[0]?.message?.content || '';
+    console.log('🧠 Groq response:', text);
+
     const hints = [];
     for (const line of text.split('\n')) {
       const match = line.match(/^Q\d:\s*(.+)/i);
@@ -67,11 +69,7 @@ Q4: [question to narrow reasoning]`;
     if (hints.length >= 4) return hints.slice(0, 4);
     return getFallbackSocraticHints();
   } catch (err) {
-    if (err.message.includes('429') || err.message.includes('quota')) {
-      console.warn('⚠️ Gemini quota exceeded — using fallback Socratic hints');
-    } else {
-      console.error('Gemini Socratic error:', err.message);
-    }
+    console.error('❌ Groq Socratic error:', err.message);
     return getFallbackSocraticHints();
   }
 };
