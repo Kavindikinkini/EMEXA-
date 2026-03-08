@@ -435,46 +435,133 @@ export const getEffortAnalytics = async (req, res) => {
   }
 };
 
-// ── Feature 3 support: Class-wide hint analytics (Teacher view) ──────
 export const getClassEffortAnalytics = async (req, res) => {
   try {
     const { quizId } = req.params;
-    const hints = await HintUsage.find({ quizId })
-      .populate('userId', 'name email')
-      .sort({ questionIndex: 1 });
 
+    // ✅ STEP 1: Convert quizId param to ObjectId safely
+    let quizObjectId;
+    try {
+      quizObjectId = new mongoose.Types.ObjectId(quizId);
+    } catch (e) {
+      return res.status(400).json({ success: false, message: 'Invalid quizId' });
+    }
+
+    // ✅ STEP 2: Find all attempts for this quiz → get their sessionIds
+    const attempts = await QuizAttempt.find({ quizId: quizObjectId })
+      .select('sessionId userId')
+      .lean();
+
+    const sessionIds = attempts.map(a => a.sessionId).filter(Boolean);
+    const sessionToUser = {};
+    attempts.forEach(a => {
+      if (a.sessionId) sessionToUser[a.sessionId] = a.userId?.toString();
+    });
+
+    console.log(`🔍 Quiz ${quizId}: ${attempts.length} attempts, ${sessionIds.length} sessions`);
+
+    if (sessionIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          totalHintEvents: 0,
+          questionEffortMap: [],
+          rawHints: []
+        }
+      });
+    }
+
+    // ✅ STEP 3: Find hints by sessionId (since quizId is null in most hintusages)
+    const hints = await HintUsage.find({
+      $or: [
+        { sessionId: { $in: sessionIds } },   // join via sessionId
+        { quizId: quizObjectId }               // also try direct quizId match
+      ]
+    }).lean().sort({ questionIndex: 1 });
+
+    console.log(`🔍 Found ${hints.length} hints for quiz ${quizId}`);
+
+    // ✅ STEP 4: Enrich hints with userId from session mapping if missing
+    const enrichedHints = hints.map(h => ({
+      ...h,
+      resolvedUserId: h.userId?.toString() || sessionToUser[h.sessionId] || null
+    }));
+
+    // ✅ STEP 5: Look up student names from users collection
+    const userIdStrings = [...new Set(enrichedHints.map(h => h.resolvedUserId).filter(Boolean))];
+    const userObjectIds = userIdStrings.map(id => {
+      try { return new mongoose.Types.ObjectId(id); } catch (e) { return null; }
+    }).filter(Boolean);
+
+    const users = await mongoose.connection.db.collection('users')
+      .find({ _id: { $in: userObjectIds } })
+      .project({ _id: 1, name: 1 })
+      .toArray();
+
+    const userMap = {};
+    users.forEach(u => { userMap[u._id.toString()] = u.name; });
+
+    // ✅ STEP 6: Build per-question breakdown
     const byQuestion = {};
-    hints.forEach(h => {
-      const qIdx = h.questionIndex;
+    enrichedHints.forEach(h => {
+      const qIdx = h.questionIndex ?? 0;
       if (!byQuestion[qIdx]) byQuestion[qIdx] = { hintsRequested: 0, efforts: [] };
       byQuestion[qIdx].hintsRequested++;
-      byQuestion[qIdx].efforts.push(h.effortLevel);
+      byQuestion[qIdx].efforts.push(h.effortLevel || 'unknown');
     });
 
     const questionEffortMap = Object.entries(byQuestion).map(([qIdx, data]) => ({
       questionIndex: parseInt(qIdx),
       hintsRequested: data.hintsRequested,
       effortDistribution: data.efforts.reduce((acc, e) => {
-        acc[e] = (acc[e] || 0) + 1; return acc;
+        acc[e] = (acc[e] || 0) + 1;
+        return acc;
       }, {})
-    }));
+    })).sort((a, b) => a.questionIndex - b.questionIndex);
 
     res.status(200).json({
       success: true,
       data: {
-        totalHintEvents: hints.length,
+        totalHintEvents: enrichedHints.length,
         questionEffortMap,
-        rawHints: hints.map(h => ({
-          studentId: h.userId?._id,
-          studentName: h.userId?.name,
+        rawHints: enrichedHints.map(h => ({
+          studentName: userMap[h.resolvedUserId] || 'Unknown',  // ✅ fixed anonymous
           questionIndex: h.questionIndex,
-          effortLevel: h.effortLevel,
+          effortLevel: h.effortLevel || 'unknown',
           deduction: h.deduction,
           timeSpentBeforeHint: h.timeSpentBeforeHint
         }))
       }
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error fetching class analytics', error: error.message });
+    console.error('❌ getClassEffortAnalytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching class analytics',
+      error: error.message
+    });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -193,7 +193,7 @@ const TeacherCustomAnalytics = ({ setActiveMenuItem: setParentMenuItem }) => {
           </div>
         )}
 
-        {/* Page Header — Left aligned, matching Quizzes page style */}
+        {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">
             Custom Analysis
@@ -492,12 +492,12 @@ const TeacherCustomAnalytics = ({ setActiveMenuItem: setParentMenuItem }) => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
-                { label: 'Total Students', value: classAnalytics.classStats.totalStudents, icon: '👥', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-                { label: 'Total Quizzes', value: classAnalytics.classStats.totalQuizzes, icon: '📝', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-                { label: 'Total Attempts', value: classAnalytics.classStats.totalAttempts, icon: '✍️', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100' },
-                { label: 'Average Score', value: `${classAnalytics.classStats.averageScore}%`, icon: '⭐', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' }
+                { label: 'Total Students', value: classAnalytics.classStats.totalStudents, icon: '👥', color: 'text-blue-600', bg: 'bg-blue-50' },
+                { label: 'Total Quizzes', value: classAnalytics.classStats.totalQuizzes, icon: '📝', color: 'text-purple-600', bg: 'bg-purple-50' },
+                { label: 'Total Attempts', value: classAnalytics.classStats.totalAttempts, icon: '✍️', color: 'text-orange-600', bg: 'bg-orange-50' },
+                { label: 'Average Score', value: `${classAnalytics.classStats.averageScore}%`, icon: '⭐', color: 'text-emerald-600', bg: 'bg-emerald-50' }
               ].map((stat, idx) => (
-                <div key={idx} className={`bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all`}>
+                <div key={idx} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
                   <div className={`${stat.bg} w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-4`}>
                     {stat.icon}
                   </div>
@@ -570,7 +570,8 @@ const TeacherCustomAnalytics = ({ setActiveMenuItem: setParentMenuItem }) => {
         )}
       </div>
 
-      <style jsx>{`
+      {/* ✅ FIX: Removed jsx prop from style tag (caused React warning) */}
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }

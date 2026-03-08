@@ -1,9 +1,13 @@
 // backend/src/controllers/selfReflectionController.js
+// ✅ FIXED: Added detailed logging to expose why 400 fires,
+//           plus robust ObjectId conversion for string IDs
+
 import SelfReflection from '../models/selfReflection.js';
 import QuizAttempt from '../models/quizAttempt.js';
 import TeacherQuiz from '../models/teacherQuiz.js';
+import mongoose from 'mongoose';
 
-const NEGATIVE = ['sad','angry','anxious','frustrated','confused','fear'];
+const NEGATIVE = ['sad', 'angry', 'anxious', 'frustrated', 'confused', 'fear'];
 
 const computeEmotionGap = (self, ai) => {
   if (self === ai) return 'aligned';
@@ -31,29 +35,80 @@ const generateGapInsight = (gap, self, ai, score) => ({
 export const submitReflection = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { attemptId, quizId, selfReportedEmotion, confidenceRating, effortRating, reflectionText } = req.body;
 
-    if (!attemptId || !quizId || !selfReportedEmotion || !confidenceRating || !effortRating)
-      return res.status(400).json({ message: 'Missing required fields' });
+    // ✅ FIX: Log exactly what arrives so we can diagnose missing fields
+    console.log('📝 Reflection POST body:', JSON.stringify(req.body, null, 2));
 
-    const attempt           = await QuizAttempt.findById(attemptId);
+    const {
+      attemptId,
+      quizId,
+      selfReportedEmotion,
+      confidenceRating,
+      effortRating,
+      reflectionText
+    } = req.body;
+
+    // ✅ FIX: Report exactly which fields are missing
+    const missing = [];
+    if (!attemptId)           missing.push('attemptId');
+    if (!quizId)              missing.push('quizId');
+    if (!selfReportedEmotion) missing.push('selfReportedEmotion');
+    if (!confidenceRating)    missing.push('confidenceRating');
+    if (!effortRating)        missing.push('effortRating');
+
+    if (missing.length > 0) {
+      console.error('❌ Reflection missing fields:', missing, '| received:', req.body);
+      return res.status(400).json({
+        message: 'Missing required fields',
+        missingFields: missing,
+        received: req.body
+      });
+    }
+
+    // ✅ FIX: Safely convert string IDs to ObjectId (frontend sometimes sends strings)
+    let attemptObjectId, quizObjectId;
+    try {
+      attemptObjectId = new mongoose.Types.ObjectId(attemptId.toString());
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid attemptId format', attemptId });
+    }
+    try {
+      quizObjectId = new mongoose.Types.ObjectId(quizId.toString());
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid quizId format', quizId });
+    }
+
+    // Get AI-detected emotion from the attempt's emotional summary
+    const attempt           = await QuizAttempt.findById(attemptObjectId);
     const aiDetectedEmotion = attempt?.emotionalSummary?.mostCommonEmotion || 'neutral';
     const emotionGap        = computeEmotionGap(selfReportedEmotion, aiDetectedEmotion);
-    const awarenessScore    = computeAwarenessScore(emotionGap, confidenceRating);
+    const awarenessScore    = computeAwarenessScore(emotionGap, Number(confidenceRating));
 
     const reflection = await SelfReflection.findOneAndUpdate(
-      { userId, attemptId },
-      { userId, attemptId, quizId, selfReportedEmotion, confidenceRating,
-        effortRating, reflectionText: reflectionText || '',
-        aiDetectedEmotion, emotionGap, awarenessScore },
+      { userId, attemptId: attemptObjectId },
+      {
+        userId,
+        attemptId: attemptObjectId,
+        quizId: quizObjectId,
+        selfReportedEmotion,
+        confidenceRating: Number(confidenceRating),
+        effortRating:     Number(effortRating),
+        reflectionText:   reflectionText || '',
+        aiDetectedEmotion,
+        emotionGap,
+        awarenessScore
+      },
       { upsert: true, new: true }
     );
+
+    console.log('✅ Reflection saved:', reflection._id);
 
     res.json({
       success: true,
       reflection,
       insight: generateGapInsight(emotionGap, selfReportedEmotion, aiDetectedEmotion, awarenessScore)
     });
+
   } catch (error) {
     console.error('❌ Reflection error:', error);
     res.status(500).json({ message: 'Failed to save reflection', error: error.message });
@@ -61,8 +116,6 @@ export const submitReflection = async (req, res) => {
 };
 
 // ── GET /api/reflections/my-journal ───────────────────────────────
-// ⚠️  stats fields MUST match what JournalPage.jsx reads:
-//     stats.awarenessScore, stats.totalEntries, stats.emotionMatchRate, stats.avgConfidence
 export const getMyJournal = async (req, res) => {
   try {
     const userId      = req.user._id;
@@ -89,10 +142,10 @@ export const getMyJournal = async (req, res) => {
         insight:   generateGapInsight(r.emotionGap, r.selfReportedEmotion, r.aiDetectedEmotion, r.awarenessScore)
       })),
       stats: {
-        awarenessScore,    // ← JournalPage reads stats.awarenessScore
-        totalEntries: reflections.length,  // ← JournalPage reads stats.totalEntries
-        emotionMatchRate,  // ← JournalPage reads stats.emotionMatchRate
-        avgConfidence,     // ← JournalPage reads stats.avgConfidence
+        awarenessScore,
+        totalEntries: reflections.length,
+        emotionMatchRate,
+        avgConfidence,
         trend: awarenessScore >= 70 ? 'High metacognitive awareness'
              : awarenessScore >= 50 ? 'Developing self-awareness'
              : 'Needs self-reflection practice'
@@ -107,7 +160,10 @@ export const getMyJournal = async (req, res) => {
 export const checkReflection = async (req, res) => {
   try {
     const userId   = req.user._id;
-    const existing = await SelfReflection.findOne({ userId, attemptId: req.params.attemptId });
+    const existing = await SelfReflection.findOne({
+      userId,
+      attemptId: req.params.attemptId
+    });
     res.json({ hasReflected: !!existing, reflection: existing });
   } catch (error) {
     res.status(500).json({ message: 'Failed to check reflection', error: error.message });
@@ -125,9 +181,9 @@ export const getStudentJournal = async (req, res) => {
     const quizMap = {};
     quizzes.forEach(q => { quizMap[q._id.toString()] = q.title; });
 
-    const awarenessScore = reflections.length > 0
+    const awarenessScore   = reflections.length > 0
       ? Math.round(reflections.reduce((s, r) => s + r.awarenessScore, 0) / reflections.length) : 0;
-    const alignedCount    = reflections.filter(r => r.emotionGap === 'aligned').length;
+    const alignedCount     = reflections.filter(r => r.emotionGap === 'aligned').length;
     const emotionMatchRate = reflections.length > 0
       ? Math.round((alignedCount / reflections.length) * 100) : 0;
 
