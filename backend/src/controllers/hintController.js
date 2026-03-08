@@ -1,6 +1,10 @@
 import HintUsage from '../models/hintUsage.js';
 import { getHfClient } from '../services/hfClient.js';
 import Groq from 'groq-sdk';
+import mongoose from 'mongoose';           // ✅ FIX: was missing
+import QuizAttempt from '../models/quizAttempt.js'; // ✅ FIX: was missing
+import Student from '../models/student.js';         // ✅ FIX: use Student not users collection
+
 // ── Feature 2: Effort-based deduction helpers ──────────────────────
 const calculateEffortDeduction = (timeSpentSeconds, previousAttempts) => {
   let deduction = 2;
@@ -90,7 +94,6 @@ export const generateHint = async (req, res) => {
       timeSpentSeconds = 0
     } = req.body;
 
-    // Get userId from authenticated user or request body
     const userId = req.user?._id || req.user?.id || req.body.userId;
     console.log('✅ Using userId:', userId);
 
@@ -108,19 +111,11 @@ export const generateHint = async (req, res) => {
       });
     }
 
-    // Check if hint already requested for this question in this session
-    const existingHint = await HintUsage.findOne({ 
-      userId, 
-      sessionId, 
-      questionId 
-    });
+    const existingHint = await HintUsage.findOne({ userId, sessionId, questionId });
 
     if (existingHint) {
-      // Parse stored hints (separated by |)
       const storedHints = existingHint.hintText.split(' | ').filter(h => h.trim());
       console.log('📦 Returning cached hints:', storedHints);
-      console.log('📦 Cached hints count:', storedHints.length);
-      
       return res.status(200).json({
         success: true,
         data: {
@@ -133,61 +128,34 @@ export const generateHint = async (req, res) => {
       });
     }
 
-    // Check if HF_API_KEY is available
     console.log('🔑 Checking HF API client...');
     const hfClient = getHfClient();
     
     if (!hfClient) {
       console.error('❌ HF Client is null - using fallback hints');
-      
-      // Use fallback hints if API is not available
-      const fallbackHints = [
-        'Think about the fundamental concept being tested in this question.',
-        'Consider the key differences between each option carefully.',
-        'Focus on the specific terminology used in the question.',
-        'Review the core principles related to this topic.'
-      ];
-      
-      
       const deduction = calculateEffortDeduction(timeSpentSeconds, previousAttempts);
       const effortLevel = getEffortLevel(timeSpentSeconds, previousAttempts);
-
-      // No HF key — use Gemini Socratic hints directly
       const socraticHints = await generateSocraticHints(questionText, options, previousAttempts);
 
       const hintUsage = new HintUsage({
-        userId,
-        sessionId,
-        questionId,
-        questionIndex,
+        userId, sessionId, questionId, questionIndex,
         quizId: req.body.quizId || null,
         hintText: socraticHints.join(' | '),
-        deduction,
-        effortLevel,
+        deduction, effortLevel,
         timeSpentBeforeHint: timeSpentSeconds,
         timestamp: new Date()
       });
-      
       await hintUsage.save();
       
       return res.status(200).json({
         success: true,
-        data: {
-          hints: socraticHints,
-          deduction,
-          effortLevel,
-          alreadyRequested: false,
-          hintType: 'socratic'
-        }
+        data: { hints: socraticHints, deduction, effortLevel, alreadyRequested: false, hintType: 'socratic' }
       });
     }
 
     console.log('✅ HF Client initialized successfully');
 
-    // Prepare prompt for Hugging Face
     const optionsText = options.map((opt, idx) => `${String.fromCharCode(65 + idx)}. ${opt}`).join('\n');
-    
-    // Simplified prompt for better results
     const userMessage = `You are a helpful quiz tutor. Generate exactly 4 progressive hints for this multiple choice question. Make each hint more specific than the last, but don't reveal the answer.
 
 Question: ${questionText}
@@ -198,181 +166,90 @@ ${optionsText}
 Provide 4 numbered hints (format: "1. hint text"):`;
 
     console.log('🤖 Calling Hugging Face API...');
-    console.log('📝 Using model: Qwen/Qwen2.5-0.5B-Instruct');
     
     try {
-      // Use textGeneration instead of chatCompletion for better compatibility
       const response = await hfClient.textGeneration({
         model: 'Qwen/Qwen2.5-0.5B-Instruct',
         inputs: userMessage,
-        parameters: {
-          max_new_tokens: 300,
-          temperature: 0.7,
-          top_p: 0.9,
-          return_full_text: false
-        }
+        parameters: { max_new_tokens: 300, temperature: 0.7, top_p: 0.9, return_full_text: false }
       });
 
-      console.log('✅ HF API response received:', response);
-
       let generatedText = response?.generated_text || '';
-
       if (!generatedText || typeof generatedText !== 'string') {
-        console.error('⚠️ Hugging Face response missing content:', response);
         throw new Error('AI service returned an empty response');
       }
 
-      console.log('📄 Generated text:', generatedText);
-      
-      // Parse the hints - extract 4 numbered hints
       const lines = generatedText.split('\n').map(line => line.trim()).filter(line => line);
       const hints = [];
-      
-      // Extract numbered hints (1., 2., 3., 4.)
       for (const line of lines) {
-        // Match patterns like "1.", "1:", "1 -", etc
         const match = line.match(/^(\d+)[\.\:\-\)]\s*(.+)/);
-        if (match && match[2]) {
-          hints.push(match[2].trim());
-        } else if (line && !line.match(/^(Question|Answer|Options?|Hint)/i)) {
-          // Also accept non-numbered lines as hints
-          hints.push(line);
-        }
+        if (match && match[2]) hints.push(match[2].trim());
+        else if (line && !line.match(/^(Question|Answer|Options?|Hint)/i)) hints.push(line);
       }
-      
-      console.log('📋 Extracted hints:', hints);
-      
-      // Fallback hints if parsing fails
+
       const defaultHints = [
         'Think about the fundamental concept being tested in this question.',
         'Consider the key differences between each option carefully.',
         'Focus on the specific terminology used in the question.',
         'Review the core principles related to this topic.'
       ];
-      
-      // Ensure we have exactly 4 hints
-      let finalHints = [];
-      if (hints.length >= 4) {
-        finalHints = hints.slice(0, 4);
-      } else if (hints.length > 0) {
-        // Use what we got and fill the rest with defaults
-        finalHints = [...hints];
-        while (finalHints.length < 4) {
-          finalHints.push(defaultHints[finalHints.length]);
-        }
-      } else {
-        // Use all defaults if no hints were extracted
-        finalHints = defaultHints;
-      }
-      
-      console.log('✅ Final 4 hints:', finalHints);
-      console.log('📊 Hints count:', finalHints.length);
 
-      // Save hint usage to database
-      console.log('💾 Saving hint usage to database...');
+      let finalHints = hints.length >= 4 ? hints.slice(0, 4) : hints.length > 0
+        ? [...hints, ...defaultHints.slice(hints.length)]
+        : defaultHints;
+
       const deduction = calculateEffortDeduction(timeSpentSeconds, previousAttempts);
       const effortLevel = getEffortLevel(timeSpentSeconds, previousAttempts);
-
-      // Feature 1: Generate Socratic hints via Gemini (wraps HF hints)
       const socraticHints = await generateSocraticHints(questionText, options, previousAttempts);
       const finalSocraticHints = socraticHints.length >= 4 ? socraticHints : finalHints;
 
       const hintUsage = new HintUsage({
-        userId,
-        sessionId,
-        questionId,
-        questionIndex,
-        quizId: req.body.quizId || null,    // ← ADD THIS
+        userId, sessionId, questionId, questionIndex,
+        quizId: req.body.quizId || null,
         hintText: finalSocraticHints.join(' | '),
-        deduction,
-        effortLevel,
+        deduction, effortLevel,
         timeSpentBeforeHint: timeSpentSeconds,
         timestamp: new Date()
       });
-
       await hintUsage.save();
-      console.log('✅ Hint saved successfully');
 
       return res.status(200).json({
         success: true,
-        data: {
-          hints: finalSocraticHints,
-          deduction,
-          effortLevel,
-          alreadyRequested: false,
-          hintType: 'socratic'
-        }
+        data: { hints: finalSocraticHints, deduction, effortLevel, alreadyRequested: false, hintType: 'socratic' }
       });
 
     } catch (apiError) {
-      console.error('❌ Hugging Face API Error:', apiError);
-      console.error('Error name:', apiError.name);
-      console.error('Error message:', apiError.message);
-      console.error('Error stack:', apiError.stack);
-      
-      // Return fallback hints on API error
-      const fallbackHints = [
-        'Think about the fundamental concept being tested in this question.',
-        'Consider the key differences between each option carefully.',
-        'Focus on the specific terminology used in the question.',
-        'Review the core principles related to this topic.'
-      ];
-      
-      console.log('⚠️ HF failed — using Gemini Socratic hints instead');
-      
+      console.error('❌ Hugging Face API Error:', apiError.message);
       const deduction = calculateEffortDeduction(timeSpentSeconds, previousAttempts);
       const effortLevel = getEffortLevel(timeSpentSeconds, previousAttempts);
-
-      // Use Gemini Socratic hints as primary fallback
       const socraticHints = await generateSocraticHints(questionText, options, previousAttempts);
 
       const hintUsage = new HintUsage({
-        userId,
-        sessionId,
-        questionId,
-        questionIndex,
+        userId, sessionId, questionId, questionIndex,
         quizId: req.body.quizId || null,
         hintText: socraticHints.join(' | '),
-        deduction,
-        effortLevel,
+        deduction, effortLevel,
         timeSpentBeforeHint: timeSpentSeconds,
         timestamp: new Date()
       });
-      
       await hintUsage.save();
-      
+
       return res.status(200).json({
         success: true,
-        data: {
-          hints: socraticHints,
-          deduction,
-          effortLevel,
-          alreadyRequested: false,
-          hintType: 'socratic'
-        }
+        data: { hints: socraticHints, deduction, effortLevel, alreadyRequested: false, hintType: 'socratic' }
       });
     }
 
   } catch (error) {
-    console.error('💥 Hint generation error:', error);
-    console.error('📋 Error stack:', error.stack);
-    console.error('📋 Error message:', error.message);
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Error generating hint',
-      error: error.message
-    });
+    console.error('💥 Hint generation error:', error.message);
+    return res.status(500).json({ success: false, message: 'Error generating hint', error: error.message });
   }
 };
 
-// Get total hints used in a session
 export const getHintsUsed = async (req, res) => {
   try {
     const { sessionId } = req.params;
-
     const hints = await HintUsage.find({ sessionId });
-    
     const totalDeduction = hints.reduce((sum, hint) => sum + hint.deduction, 0);
 
     res.status(200).json({
@@ -387,18 +264,12 @@ export const getHintsUsed = async (req, res) => {
         }))
       }
     });
-
   } catch (error) {
     console.error('Error fetching hints:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching hints',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching hints', error: error.message });
   }
 };
 
-// ── Feature 2: Per-student effort analytics (Teacher view) ──────────
 export const getEffortAnalytics = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -422,13 +293,7 @@ export const getEffortAnalytics = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: {
-        totalHintsRequested: hints.length,
-        totalDeduction,
-        avgTimeBeforeHint: avgTime,
-        effortScore,
-        effortBreakdown
-      }
+      data: { totalHintsRequested: hints.length, totalDeduction, avgTimeBeforeHint: avgTime, effortScore, effortBreakdown }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error fetching effort analytics', error: error.message });
@@ -439,15 +304,13 @@ export const getClassEffortAnalytics = async (req, res) => {
   try {
     const { quizId } = req.params;
 
-    // ✅ STEP 1: Convert quizId param to ObjectId safely
-    let quizObjectId;
-    try {
-      quizObjectId = new mongoose.Types.ObjectId(quizId);
-    } catch (e) {
+    // ✅ FIX: Validate quizId before converting
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
       return res.status(400).json({ success: false, message: 'Invalid quizId' });
     }
 
-    // ✅ STEP 2: Find all attempts for this quiz → get their sessionIds
+    const quizObjectId = new mongoose.Types.ObjectId(quizId);
+
     const attempts = await QuizAttempt.find({ quizId: quizObjectId })
       .select('sessionId userId')
       .lean();
@@ -463,45 +326,36 @@ export const getClassEffortAnalytics = async (req, res) => {
     if (sessionIds.length === 0) {
       return res.status(200).json({
         success: true,
-        data: {
-          totalHintEvents: 0,
-          questionEffortMap: [],
-          rawHints: []
-        }
+        data: { totalHintEvents: 0, questionEffortMap: [], rawHints: [] }
       });
     }
 
-    // ✅ STEP 3: Find hints by sessionId (since quizId is null in most hintusages)
     const hints = await HintUsage.find({
       $or: [
-        { sessionId: { $in: sessionIds } },   // join via sessionId
-        { quizId: quizObjectId }               // also try direct quizId match
+        { sessionId: { $in: sessionIds } },
+        { quizId: quizObjectId }
       ]
     }).lean().sort({ questionIndex: 1 });
 
     console.log(`🔍 Found ${hints.length} hints for quiz ${quizId}`);
 
-    // ✅ STEP 4: Enrich hints with userId from session mapping if missing
     const enrichedHints = hints.map(h => ({
       ...h,
       resolvedUserId: h.userId?.toString() || sessionToUser[h.sessionId] || null
     }));
 
-    // ✅ STEP 5: Look up student names from users collection
+    // ✅ FIX: Use Student model instead of raw users collection
     const userIdStrings = [...new Set(enrichedHints.map(h => h.resolvedUserId).filter(Boolean))];
-    const userObjectIds = userIdStrings.map(id => {
-      try { return new mongoose.Types.ObjectId(id); } catch (e) { return null; }
-    }).filter(Boolean);
+    const userObjectIds = userIdStrings
+      .map(id => { try { return new mongoose.Types.ObjectId(id); } catch { return null; } })
+      .filter(Boolean);
 
-    const users = await mongoose.connection.db.collection('users')
-      .find({ _id: { $in: userObjectIds } })
-      .project({ _id: 1, name: 1 })
-      .toArray();
+    const studentDocs = await Student.find({ _id: { $in: userObjectIds } })
+      .select('_id name').lean();
 
     const userMap = {};
-    users.forEach(u => { userMap[u._id.toString()] = u.name; });
+    studentDocs.forEach(s => { userMap[s._id.toString()] = s.name; });
 
-    // ✅ STEP 6: Build per-question breakdown
     const byQuestion = {};
     enrichedHints.forEach(h => {
       const qIdx = h.questionIndex ?? 0;
@@ -525,7 +379,7 @@ export const getClassEffortAnalytics = async (req, res) => {
         totalHintEvents: enrichedHints.length,
         questionEffortMap,
         rawHints: enrichedHints.map(h => ({
-          studentName: userMap[h.resolvedUserId] || 'Unknown',  // ✅ fixed anonymous
+          studentName: userMap[h.resolvedUserId] || 'Unknown',
           questionIndex: h.questionIndex,
           effortLevel: h.effortLevel || 'unknown',
           deduction: h.deduction,
@@ -536,32 +390,6 @@ export const getClassEffortAnalytics = async (req, res) => {
 
   } catch (error) {
     console.error('❌ getClassEffortAnalytics error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching class analytics',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching class analytics', error: error.message });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
