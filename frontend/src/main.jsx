@@ -31,6 +31,7 @@ import Notification from "./pages/Notification";
 import RequireAuth from "./components/RequireAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HelpSupportCentre from './pages/HelpSupportCentre';
+import JournalPage from './pages/JournalPage';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -88,6 +89,7 @@ createRoot(document.getElementById("root")).render(
     </ProtectedRoute>
   }
 />
+<Route path="/journal" element={<JournalPage />} />
 
         {/* Permission Route */}
         <Route path="/permission" element={<Permission />} />
