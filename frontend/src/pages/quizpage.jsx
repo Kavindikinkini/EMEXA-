@@ -137,6 +137,7 @@ const QuizPage = () => {
   const [cameraPermissionDenied, setCameraPermissionDenied] = useState(false);
   const [bulbVisible, setBulbVisible] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
+  const [submittedAttemptId, setSubmittedAttemptId] = useState(null);
 
   // Load quiz data on component mount
   useEffect(() => {
@@ -1191,15 +1192,14 @@ useEffect(() => {
               });
               const percentage = (correct / quizData.questions.length) * 100;
               
-              // Award gamification points
-              await awardGamificationPoints({
-                studentId: userId,
-                quizId: quizId,
-                attemptId: submitResponse.data.attemptId || submitResponse.data.data?._id || submitResponse.data._id || 'temp-id',
-                percentage: percentage,
-                hintsUsed: hintsUsedCount,
-                timeSpent: timeTaken,
-                quizTitle: quizData.title
+              const resolvedAttemptId = submitResponse.data.attemptId || submitResponse.data.data?._id || submitResponse.data._id;
+setSubmittedAttemptId(resolvedAttemptId);
+
+await awardGamificationPoints({
+  studentId: userId,
+  quizId: quizId,
+  attemptId: resolvedAttemptId || 'temp-id',
+                
               });
               
               console.log('🎉 Gamification complete!');
@@ -1291,6 +1291,7 @@ useEffect(() => {
           console.log("✅ Full feedback data:", data.data);
 
           setAiFeedback(data.data);
+          setSubmittedAttemptId(data.data.attemptId);
         } else {
           console.error("❌ Feedback API error:", data.message);
           console.error("❌ Full error:", data);
@@ -1844,19 +1845,20 @@ useEffect(() => {
                             }`}
                           .
                         </p>
-                        {/* Self Reflection Trigger */}
-<div className="mt-5 pt-4 border-t border-blue-200">
-  <button
-    onClick={() => setShowReflection(true)}
-    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center justify-center gap-2"
-  >
-    📖 Write Your Self-Reflection
-    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">~2 min</span>
-  </button>
-  <p className="text-center text-xs text-blue-400 mt-2">Compare how you felt vs what AI detected</p>
-</div>
                       </div>
                     )}
+
+                  {/* ✅ FIX: Self Reflection button always shown when feedback exists */}
+                  <div className="mt-5 pt-4 border-t border-blue-200">
+                    <button
+                      onClick={() => setShowReflection(true)}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center justify-center gap-2"
+                    >
+                      📖 Write Your Self-Reflection
+                      <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">~2 min</span>
+                    </button>
+                    <p className="text-center text-xs text-blue-400 mt-2">Compare how you felt vs what AI detected</p>
+                  </div>
                 </>
               ) : (
                 <p className="text-gray-600 italic">
@@ -1868,7 +1870,7 @@ useEffect(() => {
 
           {showReflection && (
   <SelfReflectionModal
-    attemptId={aiFeedback?.attemptId}
+    attemptId={submittedAttemptId}
     quizId={quizId}
     quizTitle={quizData?.title}
     actualScore={aiFeedback?.score || 0}

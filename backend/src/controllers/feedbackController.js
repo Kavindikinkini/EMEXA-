@@ -198,34 +198,35 @@ Feedback:`;
       completedAt: new Date()
     };
 
-    // Use upsert to handle duplicate sessionId - update if exists, insert if not
-    await QuizAttempt.updateOne(
-      { sessionId },
-      quizAttemptData,
-      { upsert: true }
-    );
+    // Use findOneAndUpdate to get the saved document's _id back
+const savedAttempt = await QuizAttempt.findOneAndUpdate(
+  { sessionId },
+  quizAttemptData,
+  { upsert: true, new: true }
+);
 
-    console.log('✅ Quiz attempt saved successfully');
-    console.log(`📊 Results: Raw: ${rawScore}, Hints: ${totalHints}, Final: ${finalScore}`);
+console.log('✅ Quiz attempt saved successfully');
+console.log(`📊 Results: Raw: ${rawScore}, Hints: ${totalHints}, Final: ${finalScore}`);
 
-    res.status(200).json({
-      success: true,
-      data: {
-        sessionId,
-        rawScore,
-        hintsUsed: totalHints,
-        finalScore,
-        feedback: aiFeedback,
-        emotionalSummary: {
-          mostCommonEmotion,
-          confusedCount,
-          happyCount,
-          neutralCount,
-          totalCaptures: emotionLogs.length,
-          emotionCounts
-        }
-      }
-    });
+res.status(200).json({
+  success: true,
+  data: {
+    attemptId: savedAttempt._id,   // ✅ NOW included in response
+    sessionId,
+    rawScore,
+    hintsUsed: totalHints,
+    finalScore,
+    feedback: aiFeedback,
+    emotionalSummary: {
+      mostCommonEmotion,
+      confusedCount,
+      happyCount,
+      neutralCount,
+      totalCaptures: emotionLogs.length,
+      emotionCounts
+    }
+  }
+});
 
   } catch (error) {
     console.error('❌ Feedback generation error:', error);
