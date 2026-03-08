@@ -44,6 +44,7 @@ import wellnessAIRoutes from "./src/routes/wellnessAIRoutes.js";
 import moodRoutes from "./src/routes/moodRoutes.js";
 import helpSupportRoutes from "./src/routes/helpSupportRoutes.js";
 import studyRecommendationRoutes from './src/routes/studyRecommendationRoutes.js';
+import burnoutRoutes from './src/routes/burnoutRoutes.js'; 
 import reflectionRoutes from './src/routes/reflectionRoutes.js';
 
 
@@ -115,6 +116,7 @@ app.use("/api/moods", moodRoutes);
 app.use("/api/help-support", helpSupportRoutes);
 app.use('/api/educational-games', educationalGamesRoutes);
 app.use('/api/study-recommendations', studyRecommendationRoutes);
+app.use('/api/burnout', burnoutRoutes);
 app.use('/api/reflections', reflectionRoutes);
 
 // Health check
