@@ -46,6 +46,8 @@ import helpSupportRoutes from "./src/routes/helpSupportRoutes.js";
 import studyRecommendationRoutes from './src/routes/studyRecommendationRoutes.js';
 import burnoutRoutes from './src/routes/burnoutRoutes.js'; 
 import reflectionRoutes from './src/routes/reflectionRoutes.js';
+import peerComparisonRoutes from './src/routes/peerComparisonRoutes.js';
+import quizDifficultyRoutes from './src/routes/quizDifficultyRoutes.js';
 
 
 const app = express();
@@ -118,6 +120,8 @@ app.use('/api/educational-games', educationalGamesRoutes);
 app.use('/api/study-recommendations', studyRecommendationRoutes);
 app.use('/api/burnout', burnoutRoutes);
 app.use('/api/reflections', reflectionRoutes);
+app.use('/api/peer-comparison', peerComparisonRoutes);
+app.use('/api/quiz-difficulty', quizDifficultyRoutes);
 
 // Health check
 app.get("/", (req, res) => {
