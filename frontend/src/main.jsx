@@ -32,6 +32,8 @@ import RequireAuth from "./components/RequireAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HelpSupportCentre from './pages/HelpSupportCentre';
 import JournalPage from './pages/JournalPage';
+import PeerComparison from './pages/PeerComparison';
+import QuizDifficultyAnalysis from './pages/QuizDifficultyAnalysis';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -229,6 +231,16 @@ createRoot(document.getElementById("root")).render(
           path="/stdashboard"
           element={<Navigate to="/dashboard" replace />}
         />
+        <Route path="/peer-comparison" element={
+  <ProtectedRoute allowedRoles={["student"]}>
+    <PeerComparison />
+  </ProtectedRoute>
+} />
+<Route path="/teacher/difficulty-analysis" element={
+  <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+    <QuizDifficultyAnalysis />
+  </ProtectedRoute>
+} />
 
         {/* 404 Catch-all - Redirect to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
