@@ -218,7 +218,7 @@ const TeacherDashboard = () => {
       case "heatmap":
         return <EmotionalHeatmap />;
       case "difficulty":
-        return null; // navigates away, no inline render needed
+        return null; 
       case "customAnalytics":
         return <TeacherCustomAnalytics setActiveMenuItem={setActiveMenuItem} />;
       case "profile":
