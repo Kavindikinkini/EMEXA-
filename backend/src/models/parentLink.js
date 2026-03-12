@@ -1,40 +1,15 @@
 import mongoose from 'mongoose';
 
 const parentLinkSchema = new mongoose.Schema({
-  parentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  studentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  studentEmail: {
-    type: String,
-    required: true,
-    lowercase: true,
-    trim: true
-  },
-  consentLevel: {
-    type: String,
-    enum: ['full', 'summary-only'],
-    default: 'summary-only'
-  },
+  parentId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  studentId:     { type: mongoose.Schema.Types.ObjectId, required: true },
+  studentName:   { type: String },
+  studentEmail:  { type: String },
+  consentLevel:  { type: String, enum: ['full', 'summary-only', 'none'], default: 'full' },
   notifyBurnout: { type: Boolean, default: true },
   notifyWeekly:  { type: Boolean, default: true },
-  status: {
-    type: String,
-    enum: ['pending', 'active'],
-    default: 'pending'
-  }
+  linkedAt:      { type: Date, default: Date.now }
 }, { timestamps: true });
 
-parentLinkSchema.index({ parentId: 1 });
-parentLinkSchema.index({ studentId: 1 });
-
-const ParentLink = mongoose.models.ParentLink ||
-  mongoose.model('ParentLink', parentLinkSchema);
-
+const ParentLink = mongoose.model('ParentLink', parentLinkSchema);
 export default ParentLink;
