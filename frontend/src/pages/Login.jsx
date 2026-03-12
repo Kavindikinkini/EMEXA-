@@ -570,6 +570,12 @@ export default function Login() {
                 Register
               </Link>
             </div>
+            <div className="small-note" style={{ marginTop: "8px" }}>
+              Are you a parent?{" "}
+              <Link className="link" to="/parent/login">
+                Go to Parent Portal
+              </Link>
+            </div>
           </form>
         </div>
       </div>

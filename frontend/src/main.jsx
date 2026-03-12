@@ -34,6 +34,9 @@ import HelpSupportCentre from './pages/HelpSupportCentre';
 import JournalPage from './pages/JournalPage';
 import PeerComparison from './pages/PeerComparison';
 import QuizDifficultyAnalysis from './pages/QuizDifficultyAnalysis';
+import ParentLogin from './pages/ParentLogin';
+import ParentRegister from './pages/ParentRegister';
+import ParentDashboard from './pages/ParentDashboard';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -241,6 +244,11 @@ createRoot(document.getElementById("root")).render(
     <QuizDifficultyAnalysis />
   </ProtectedRoute>
 } />
+
+{/* Parent Routes */}
+<Route path="/parent/login"     element={<ParentLogin />} />
+<Route path="/parent/register"  element={<ParentRegister />} />
+<Route path="/parent/dashboard" element={<ParentDashboard />} />
 
         {/* 404 Catch-all - Redirect to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
