@@ -48,7 +48,7 @@ import burnoutRoutes from './src/routes/burnoutRoutes.js';
 import reflectionRoutes from './src/routes/reflectionRoutes.js';
 import peerComparisonRoutes from './src/routes/peerComparisonRoutes.js';
 import quizDifficultyRoutes from './src/routes/quizDifficultyRoutes.js';
-
+import parentRoutes from './src/routes/parentRoutes.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -122,6 +122,7 @@ app.use('/api/burnout', burnoutRoutes);
 app.use('/api/reflections', reflectionRoutes);
 app.use('/api/peer-comparison', peerComparisonRoutes);
 app.use('/api/quiz-difficulty', quizDifficultyRoutes);
+app.use('/api/parent', parentRoutes);
 
 // Health check
 app.get("/", (req, res) => {
