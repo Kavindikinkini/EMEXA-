@@ -103,6 +103,9 @@ const QuizPage = () => {
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [questionOrder, setQuestionOrder] = useState([]); 
+  const [emotionHistory, setEmotionHistory] = useState([]); 
+  const [difficultyTags, setDifficultyTags] = useState([]); 
   const [timeOnQuestion, setTimeOnQuestion] = useState(0);
   const [showBulb, setShowBulb] = useState(false);
   const [showEmojiDialog, setShowEmojiDialog] = useState(false);
@@ -276,12 +279,17 @@ const QuizPage = () => {
       });
 
       socket.on("emotion-detected", (data) => {
-        console.log(
-          "😊 AI: Emotion detected -",
-          data.emotion,
-          `(${Math.round(data.confidence * 100)}%)`,
-        );
-      });
+  console.log(
+    "😊 AI: Emotion detected -",
+    data.emotion,
+    `(${Math.round(data.confidence * 100)}%)`,
+  );
+  setEmotionHistory(prev => [...prev, {
+    emotion: data.emotion,
+    questionIndex: data.questionIndex,
+    confidence: data.confidence
+  }]);
+});
 
       socket.on("emotion-error", (error) => {
         console.error("❌ AI: Emotion error", error);
@@ -561,13 +569,17 @@ const QuizPage = () => {
                 }),
               );
 
-              setQuizData({
-                title: teacherQuiz.title,
-                subject: teacherQuiz.subject,
-                questions: formattedQuestions,
-              });
-              setLoading(false);
-              return;
+              const tags = buildDifficultyTags(formattedQuestions);
+const order = buildInitialOrder(tags);
+setDifficultyTags(tags);
+setQuestionOrder(order);
+setQuizData({
+  title: teacherQuiz.title,
+  subject: teacherQuiz.subject,
+  questions: formattedQuestions,
+});
+setLoading(false);
+return;
             } else {
               console.warn("Quiz Page - Teacher quiz found but no questions!");
             }
@@ -803,6 +815,98 @@ useEffect(() => {
     }
   };
 }, [quizSubmitted, showResults, quizData, answers, quizId, quizStartTime]);
+
+  // ── Adaptive Difficulty Engine ─────────────────────────────
+
+// Tag questions by position when quiz loads
+const buildDifficultyTags = (questions) => {
+  const total = questions.length;
+  return questions.map((_, i) => {
+    const pct = i / total;
+    if (pct < 0.33) return 'easy';
+    if (pct < 0.67) return 'medium';
+    return 'hard';
+  });
+};
+
+// Build initial adaptive order: easy → medium → hard (interleaved)
+const buildInitialOrder = (tags) => {
+  const easy   = tags.map((t, i) => ({ i, t })).filter(x => x.t === 'easy').map(x => x.i);
+  const medium = tags.map((t, i) => ({ i, t })).filter(x => x.t === 'medium').map(x => x.i);
+  const hard   = tags.map((t, i) => ({ i, t })).filter(x => x.t === 'hard').map(x => x.i);
+  const order = [];
+  const maxLen = Math.max(easy.length, medium.length, hard.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < easy.length)   order.push(easy[i]);
+    if (i < medium.length) order.push(medium[i]);
+    if (i < hard.length)   order.push(hard[i]);
+  }
+  // Deduplicate while preserving order
+  return [...new Set(order)];
+};
+
+// Calculate momentum score from recent answers + emotions
+const calcMomentum = (answeredMap, tags, order, emotionHist, currentPos) => {
+  // Get last 3 answered questions in order
+  const recentPositions = order
+    .slice(0, currentPos + 1)
+    .filter(qi => answeredMap[qi] !== undefined)
+    .slice(-3);
+
+  const recentCorrect = recentPositions.filter(qi => {
+    const q = quizData.questions[qi];
+    return q.type === 'mcq' && answeredMap[qi] === q.correctAnswer;
+  }).length;
+
+  const correctRate = recentPositions.length > 0
+    ? recentCorrect / recentPositions.length
+    : 0.5; // neutral default
+
+  // Recent calm emotions (happy + neutral = calm)
+  const recentEmotions = emotionHist.slice(-5);
+  const calmCount = recentEmotions.filter(e =>
+    e.emotion === 'happy' || e.emotion === 'neutral'
+  ).length;
+  const calmRate = recentEmotions.length > 0
+    ? calmCount / recentEmotions.length
+    : 0.5; // neutral default
+
+  return (correctRate * 0.6) + (calmRate * 0.4);
+};
+
+// Pick next question index based on momentum
+const pickNextQuestion = (momentum, currentOrderPos, tags, currentOrder) => {
+  const answered = new Set(currentOrder.slice(0, currentOrderPos + 1));
+  const remaining = currentOrder.filter((_, i) => i > currentOrderPos);
+
+  if (remaining.length === 0) return null;
+
+  // Determine target difficulty
+  let targetDiff;
+  if (momentum > 0.65) targetDiff = 'hard';
+  else if (momentum < 0.35) targetDiff = 'easy';
+  else targetDiff = 'medium';
+
+  // Try to find a question of target difficulty
+  const targetPool = remaining.filter(qi => tags[qi] === targetDiff);
+
+  if (targetPool.length > 0) {
+    return targetPool[0]; // take first available in target difficulty
+  }
+
+  // Fallback: adjacent difficulty
+  if (targetDiff === 'hard') {
+    const medPool = remaining.filter(qi => tags[qi] === 'medium');
+    if (medPool.length > 0) return medPool[0];
+  }
+  if (targetDiff === 'easy') {
+    const medPool = remaining.filter(qi => tags[qi] === 'medium');
+    if (medPool.length > 0) return medPool[0];
+  }
+
+  // Final fallback: next in existing order
+  return remaining[0];
+};
 
   const handleAnswerSelect = (optionIndex) => {
     setAnswers({ ...answers, [currentQuestion]: optionIndex });
@@ -1075,16 +1179,65 @@ useEffect(() => {
   };
 
   const handleNext = () => {
-    if (currentQuestion < quizData.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+  if (currentQuestion >= quizData.questions.length - 1) return;
+
+  // ── Adaptive Engine: pick next question ───────────────
+  if (questionOrder.length > 0 && difficultyTags.length > 0) {
+    const currentPos = questionOrder.indexOf(currentQuestion);
+
+    if (currentPos !== -1) {
+      // Calculate momentum from recent performance + emotion
+      const momentum = calcMomentum(
+        answers,
+        difficultyTags,
+        questionOrder,
+        emotionHistory,
+        currentPos
+      );
+
+      console.log(`🧠 Adaptive Engine — momentum: ${momentum.toFixed(2)} (correct×0.6 + calm×0.4)`);
+
+      const nextQIndex = pickNextQuestion(
+        momentum,
+        currentPos,
+        difficultyTags,
+        questionOrder
+      );
+
+      if (nextQIndex !== null && nextQIndex !== undefined) {
+        // Reorder: move picked question to currentPos+1 if not already there
+        const newOrder = [...questionOrder];
+        const pickedAt = newOrder.indexOf(nextQIndex);
+        if (pickedAt !== currentPos + 1) {
+          newOrder.splice(pickedAt, 1);
+          newOrder.splice(currentPos + 1, 0, nextQIndex);
+          setQuestionOrder(newOrder);
+        }
+
+        console.log(`🧠 Next question: index ${nextQIndex} (${difficultyTags[nextQIndex]}) — momentum ${momentum > 0.65 ? '↑ High' : momentum < 0.35 ? '↓ Low' : '→ Medium'}`);
+        setCurrentQuestion(nextQIndex);
+        return;
+      }
     }
-  };
+  }
+
+  // Fallback: linear progression
+  setCurrentQuestion(currentQuestion + 1);
+};
 
   const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
+  if (questionOrder.length > 0) {
+    const currentPos = questionOrder.indexOf(currentQuestion);
+    if (currentPos > 0) {
+      setCurrentQuestion(questionOrder[currentPos - 1]);
+      return;
     }
-  };
+  }
+  // Fallback
+  if (currentQuestion > 0) {
+    setCurrentQuestion(currentQuestion - 1);
+  }
+};
 
   const handleSubmit = async () => {
     // Prevent multiple submissions
@@ -2146,13 +2299,17 @@ await awardGamificationPoints({
                 className="h-full bg-teal-600 transition-all duration-300"
                 style={{
                   width: `${
-                    ((currentQuestion + 1) / quizData.questions.length) * 100
-                  }%`,
+  questionOrder.length > 0
+    ? ((questionOrder.indexOf(currentQuestion) + 1) / quizData.questions.length) * 100
+    : ((currentQuestion + 1) / quizData.questions.length) * 100
+}%`,
                 }}
               ></div>
             </div>
             <p className="text-sm text-gray-600 mt-2">
-              {currentQuestion + 1} / {quizData.questions.length} Questions
+              {questionOrder.length > 0
+  ? questionOrder.indexOf(currentQuestion) + 1
+  : currentQuestion + 1} / {quizData.questions.length} Questions
             </p>
           </div>
 
@@ -2187,8 +2344,22 @@ await awardGamificationPoints({
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold text-gray-800">
-                  Question {question.id}
-                </h2>
+  Question {question.id}
+</h2>
+{/* Adaptive difficulty badge */}
+{difficultyTags.length > 0 && difficultyTags[currentQuestion] && (
+  <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+    difficultyTags[currentQuestion] === 'easy'
+      ? 'bg-green-50 text-green-700 border-green-200'
+      : difficultyTags[currentQuestion] === 'hard'
+      ? 'bg-red-50 text-red-700 border-red-200'
+      : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+  }`}>
+    {difficultyTags[currentQuestion] === 'easy' ? '🟢 Easy'
+      : difficultyTags[currentQuestion] === 'hard' ? '🔴 Hard'
+      : '🟡 Medium'}
+  </span>
+)}
                 <button
                   onClick={toggleFlag}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
@@ -2408,21 +2579,23 @@ await awardGamificationPoints({
             <div className="flex items-center justify-between pt-6 border-t">
               <button
                 onClick={handlePrevious}
-                disabled={currentQuestion === 0}
-                className={`
-                  flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors
-                  ${
-                    currentQuestion === 0
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }
+                disabled={questionOrder.length > 0 ? questionOrder.indexOf(currentQuestion) === 0 : currentQuestion === 0}
+className={`
+  flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors
+  ${
+    (questionOrder.length > 0 ? questionOrder.indexOf(currentQuestion) === 0 : currentQuestion === 0)
+      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+  }
                 `}
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
               </button>
 
-              {currentQuestion === quizData.questions.length - 1 ? (
+              {(questionOrder.length > 0
+  ? questionOrder.indexOf(currentQuestion) === quizData.questions.length - 1
+  : currentQuestion === quizData.questions.length - 1) ? (
                 <button
                   onClick={handleSubmit}
                   disabled={isSubmitting || quizSubmitted}
