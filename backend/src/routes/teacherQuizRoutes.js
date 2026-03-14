@@ -15,6 +15,7 @@ import {
   getSharedQuizzes 
 } from '../controllers/teacherQuizController.js';
 import { protect } from '../middleware/auth.middleware.js';
+import { getDistractorAnalysis } from '../controllers/distractorController.js';
 
 const router = express.Router();
 
@@ -30,6 +31,8 @@ router.get('/my-quizzes', getTeacherQuizzes);         // Get all teacher's quizz
 router.get('/drafts', getDrafts);                      // Get draft quizzes
 router.get('/scheduled', getScheduledQuizzes);        // Get scheduled quizzes
 router.get('/stats', getQuizStats);                    // Get quiz statistics
+router.get('/:id/distractor-analysis', getDistractorAnalysis);
+
 router.get('/:id', getQuizById);                       // Get single quiz by ID
 router.put('/:id', updateQuiz);                        // Update quiz
 router.delete('/:id', deleteQuiz);                     // Soft delete quiz
@@ -41,5 +44,6 @@ router.post('/:id/schedule', scheduleQuiz);            // Schedule a quiz
 // Student submission
 router.post('/:id/submit', submitQuizAnswers);         // Submit quiz answers (students)
 router.get('/:id/submission', getQuizSubmission);      // Get saved submission results (students)
+router.get('/:id/distractor-analysis', getDistractorAnalysis);    // Feature 11: AI Distractor Analysis
 
 export default router;
