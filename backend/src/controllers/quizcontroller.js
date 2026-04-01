@@ -7,6 +7,7 @@ import {
 import User from '../models/user.js';
 import Student from '../models/student.js';
 import QuizAttempt from '../models/quizAttempt.js'; 
+import { triggerPredictionAfterQuiz } from '../utils/predictionTrigger.js';
 
 const sampleQuizzes = {
   'matrix-quiz': {
@@ -176,6 +177,7 @@ try {
 
   const quizAttempt = await QuizAttempt.create(attemptData);
   console.log('✅ Quiz attempt activity recorded:', quizAttempt._id);
+  triggerPredictionAfterQuiz(userId).catch(console.warn);
 } catch (activityError) {
   console.error('❌ Error recording quiz attempt activity:', activityError);
   // Don't fail the submission if activity recording fails
