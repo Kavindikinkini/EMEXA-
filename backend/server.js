@@ -49,6 +49,7 @@ import reflectionRoutes from './src/routes/reflectionRoutes.js';
 import peerComparisonRoutes from './src/routes/peerComparisonRoutes.js';
 import quizDifficultyRoutes from './src/routes/quizDifficultyRoutes.js';
 import parentRoutes from './src/routes/parentRoutes.js';
+import finalMarkPredictionRoutes from './src/routes/finalMarkPredictionRoutes.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -123,6 +124,7 @@ app.use('/api/reflections', reflectionRoutes);
 app.use('/api/peer-comparison', peerComparisonRoutes);
 app.use('/api/quiz-difficulty', quizDifficultyRoutes);
 app.use('/api/parent', parentRoutes);
+app.use('/api/predictions', finalMarkPredictionRoutes);
 
 // Health check
 app.get("/", (req, res) => {

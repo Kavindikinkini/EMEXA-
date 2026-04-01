@@ -37,6 +37,7 @@ import QuizDifficultyAnalysis from './pages/QuizDifficultyAnalysis';
 import ParentLogin from './pages/ParentLogin';
 import ParentRegister from './pages/ParentRegister';
 import ParentDashboard from './pages/ParentDashboard';
+import TeacherPredictions from './pages/TeacherPredictions';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -244,6 +245,15 @@ createRoot(document.getElementById("root")).render(
     <QuizDifficultyAnalysis />
   </ProtectedRoute>
 } />
+
+<Route
+  path="/teacher/predictions"
+  element={
+    <ProtectedRoute allowedRoles={["teacher", "admin"]}>
+      <TeacherPredictions />
+    </ProtectedRoute>
+  }
+/>
 
 {/* Parent Routes */}
 <Route path="/parent/login"     element={<ParentLogin />} />

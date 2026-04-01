@@ -12,6 +12,7 @@ import Header from "../components/headerorigin";
 import PersonalAnalytics from '../components/PersonalAnalytics';
 import StudyRecommendations from '../components/StudyRecommendations';
 import BurnoutDetection from '../components/BurnoutDetection';
+import PredictionBadge from '../components/PredictionBadge';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTime12Hour = (time24) => {
@@ -992,6 +993,9 @@ const StudentDashboard = () => {
             </div>
             <div className="mt-6">
               <BurnoutDetection />
+            </div>
+            <div className="mt-6">
+              <PredictionBadge />
             </div>
           </div>
         </div>
