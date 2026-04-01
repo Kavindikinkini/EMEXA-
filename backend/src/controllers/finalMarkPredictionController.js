@@ -2,22 +2,19 @@ import QuizAttempt from '../models/quizAttempt.js';
 import EmotionLog from '../models/emotionLog.js';
 import Student from '../models/student.js';
 import FinalMarkPrediction from '../models/finalMarkPrediction.js';
+import PredictionHistory from '../models/predictionHistory.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPER: K-Means clustering (pure JS, no external ML lib)
-// Clusters students into 3 groups based on [avgScore, confidenceIndex]
 // ─────────────────────────────────────────────────────────────────────────────
 function kMeans(points, k = 3, iterations = 50) {
-  if (points.length < k) {
-    return points.map((_, i) => i % k);
-  }
+  if (points.length < k) return points.map((_, i) => i % k);
 
   let centroids = [
     { score: 20, conf: 20 },
     { score: 55, conf: 55 },
     { score: 85, conf: 80 }
   ];
-
   let assignments = new Array(points.length).fill(0);
 
   for (let iter = 0; iter < iterations; iter++) {
@@ -30,19 +27,16 @@ function kMeans(points, k = 3, iterations = 50) {
       return nearest;
     });
 
-    const newCentroids = Array.from({ length: k }, () => ({ score: 0, conf: 0, count: 0 }));
+    const nc = Array.from({ length: k }, () => ({ score: 0, conf: 0, count: 0 }));
     points.forEach((p, i) => {
-      newCentroids[assignments[i]].score += p.score;
-      newCentroids[assignments[i]].conf  += p.conf;
-      newCentroids[assignments[i]].count++;
+      nc[assignments[i]].score += p.score;
+      nc[assignments[i]].conf  += p.conf;
+      nc[assignments[i]].count++;
     });
-    centroids = newCentroids.map((c, ci) =>
-      c.count > 0
-        ? { score: c.score / c.count, conf: c.conf / c.count }
-        : centroids[ci]
+    centroids = nc.map((c, ci) =>
+      c.count > 0 ? { score: c.score / c.count, conf: c.conf / c.count } : centroids[ci]
     );
   }
-
   return assignments;
 }
 
@@ -51,41 +45,32 @@ function kMeans(points, k = 3, iterations = 50) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function buildStudentFeatures(studentMongoId) {
   const attempts = await QuizAttempt.find({ userId: studentMongoId })
-    .sort({ completedAt: -1 })
-    .limit(20)
-    .lean();
-
+    .sort({ completedAt: -1 }).limit(20).lean();
   const emotionLogs = await EmotionLog.find({ userId: studentMongoId })
-    .sort({ timestamp: -1 })
-    .limit(500)
-    .lean();
+    .sort({ timestamp: -1 }).limit(500).lean();
 
   if (attempts.length === 0) return null;
 
-  // ── Quiz features ────────────────────────────────────────────────────────
-  const scores  = attempts.map(a => a.finalScore ?? a.rawScore ?? 0);
+  const scores   = attempts.map(a => a.finalScore ?? a.rawScore ?? 0);
   const avgScore = scores.reduce((s, v) => s + v, 0) / scores.length;
   const hintsAvg = attempts.reduce((s, a) => s + (a.hintsUsed || 0), 0) / attempts.length;
 
-  // Score trend: compare chronological first half vs second half
   const chronoScores = [...scores].reverse();
   let scoreTrend = 'stable';
   if (chronoScores.length >= 4) {
-    const mid = Math.floor(chronoScores.length / 2);
-    const firstHalf  = chronoScores.slice(0, mid).reduce((s, v) => s + v, 0) / mid;
-    const secondHalf = chronoScores.slice(mid).reduce((s, v) => s + v, 0) / (chronoScores.length - mid);
-    if (secondHalf - firstHalf > 5)  scoreTrend = 'improving';
-    if (firstHalf  - secondHalf > 5) scoreTrend = 'declining';
+    const mid  = Math.floor(chronoScores.length / 2);
+    const fh   = chronoScores.slice(0, mid).reduce((s, v) => s + v, 0) / mid;
+    const sh   = chronoScores.slice(mid).reduce((s, v) => s + v, 0) / (chronoScores.length - mid);
+    if (sh - fh > 5) scoreTrend = 'improving';
+    if (fh - sh > 5) scoreTrend = 'declining';
   }
 
-  // ── Emotion features ─────────────────────────────────────────────────────
   const total = emotionLogs.length || 1;
   const counts = { happy: 0, sad: 0, angry: 0, confused: 0, neutral: 0, anxious: 0 };
   let confSum = 0, frictionSum = 0;
-
   emotionLogs.forEach(log => {
     counts[log.emotion] = (counts[log.emotion] || 0) + 1;
-    confSum     += log.confidence   || 0;
+    confSum     += log.confidence    || 0;
     frictionSum += log.frictionScore || 1;
   });
 
@@ -103,9 +88,7 @@ async function buildStudentFeatures(studentMongoId) {
   const confidenceIndex = Math.min(100, Math.round(
     (happyRatio * 0.6 + neutralRatio * 0.4) * 100
   ));
-
-  const dominantEmotion = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])[0][0];
+  const dominantEmotion = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
 
   return {
     avgScore, hintsAvg, scoreTrend,
@@ -118,32 +101,26 @@ async function buildStudentFeatures(studentMongoId) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPER: Classification → predicted score + risk
+// HELPER: Classification
 // ─────────────────────────────────────────────────────────────────────────────
 function classify(features, clusterLabel) {
   const { avgScore, stressIndex, confidenceIndex, scoreTrend, hintsAvg } = features;
-
-  let predicted = avgScore * 0.55
-    + confidenceIndex * 0.20
-    - stressIndex     * 0.15
-    - hintsAvg        * 0.5;
-
+  let predicted = avgScore * 0.55 + confidenceIndex * 0.20
+    - stressIndex * 0.15 - hintsAvg * 0.5;
   if (scoreTrend === 'improving') predicted += 5;
   if (scoreTrend === 'declining') predicted -= 5;
   if (clusterLabel === 'high-performer') predicted += 3;
   if (clusterLabel === 'at-risk')        predicted -= 5;
-
   predicted = Math.max(0, Math.min(100, Math.round(predicted)));
 
   let riskLevel = 'medium';
   if (predicted >= 65 && stressIndex < 40) riskLevel = 'low';
   else if (predicted < 40 || stressIndex > 65) riskLevel = 'high';
-
   return { predictedScore: predicted, riskLevel };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPER: Human-readable summaries
+// HELPER: Summaries
 // ─────────────────────────────────────────────────────────────────────────────
 function buildSummaries(features, clusterLabel) {
   const { dominantEmotion, stressIndex, confidenceIndex,
@@ -159,17 +136,17 @@ function buildSummaries(features, clusterLabel) {
     ? `Student shows signs of emotional difficulty. High stress (${stressIndex}%), low confidence (${confidenceIndex}%). Dominant emotion: "${dominantEmotion}". Recommend support before the exam.`
     : `Student shows moderate emotional readiness. Confidence ${confidenceIndex}%, stress ${stressIndex}%. Dominant emotion: "${dominantEmotion}".`;
 
-  const trendText  = scoreTrend === 'improving' ? 'improving trend'
-                   : scoreTrend === 'declining'  ? 'declining trend' : 'stable trend';
+  const trendText   = scoreTrend === 'improving' ? 'improving trend'
+                    : scoreTrend === 'declining'  ? 'declining trend' : 'stable trend';
   const physSummary = `Based on ${quizCount} quiz attempt(s), average score is ${Math.round(avgScore)}% with a ${trendText}. Average hints used: ${hintsAvg.toFixed(1)}. Cluster: ${clusterLabel.replace(/-/g, ' ')}.`;
 
   return { readinessLabel, psychSummary, physSummary };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CORE: Generate (or refresh) prediction for ONE student under ONE teacher
+// CORE: Generate prediction + save history snapshot
 // ─────────────────────────────────────────────────────────────────────────────
-export async function generatePredictionForStudent(studentMongoId, teacherMongoId) {
+export async function generatePredictionForStudent(studentMongoId, teacherMongoId, trigger = 'quiz_submission') {
   const student = await Student.findById(studentMongoId).lean();
   if (!student) throw new Error('Student not found');
 
@@ -179,58 +156,49 @@ export async function generatePredictionForStudent(studentMongoId, teacherMongoI
     await FinalMarkPrediction.findOneAndUpdate(
       { studentId: studentMongoId, teacherId: teacherMongoId },
       {
-        clusterLabel: 'insufficient-data',
-        predictedScore: null,
-        riskLevel: 'medium',
-        status: 'pending',
-        generatedAt: new Date(),
-        $inc: { version: 1 }
+        clusterLabel: 'insufficient-data', predictedScore: null,
+        riskLevel: 'medium', status: 'pending',
+        generatedAt: new Date(), $inc: { version: 1 }
       },
       { upsert: true, new: true }
     );
     return;
   }
 
-  // ── Cluster across all students of this teacher ──────────────────────────
+  // ── K-Means clustering across all students of this teacher ───────────────
   const existingPredictions = await FinalMarkPrediction.find({ teacherId: teacherMongoId }).lean();
   const allStudentIds = [...new Set([
     ...existingPredictions.map(p => p.studentId.toString()),
     studentMongoId.toString()
   ])];
 
-  const vectorPromises = allStudentIds.map(async sid => {
-    const f = await buildStudentFeatures(sid);
-    return f ? { id: sid, score: f.avgScore, conf: f.confidenceIndex } : null;
-  });
-  const vectors = (await Promise.all(vectorPromises)).filter(Boolean);
+  const vectors = (await Promise.all(
+    allStudentIds.map(async sid => {
+      const f = await buildStudentFeatures(sid);
+      return f ? { id: sid, score: f.avgScore, conf: f.confidenceIndex } : null;
+    })
+  )).filter(Boolean);
 
   let clusterLabel = 'average-performer';
-
   if (vectors.length >= 3) {
     const assignments = kMeans(vectors, 3);
     const centroids = [0, 1, 2].map(ci => {
       const members = vectors.filter((_, i) => assignments[i] === ci);
       return { ci, avg: members.length ? members.reduce((s, m) => s + m.score, 0) / members.length : 0 };
     }).sort((a, b) => a.avg - b.avg);
-
     const rankMap = {};
     centroids.forEach((c, rank) => { rankMap[c.ci] = rank; });
-
     const myVector = vectors.find(v => v.id === studentMongoId.toString());
     if (myVector) {
-      const myIdx  = vectors.indexOf(myVector);
-      const myRank = rankMap[assignments[myIdx]];
-      clusterLabel = myRank === 0 ? 'at-risk'
-                   : myRank === 2 ? 'high-performer'
-                   : 'average-performer';
+      const myRank = rankMap[assignments[vectors.indexOf(myVector)]];
+      clusterLabel = myRank === 0 ? 'at-risk' : myRank === 2 ? 'high-performer' : 'average-performer';
     }
   } else {
     clusterLabel = features.avgScore >= 70 ? 'high-performer'
-                 : features.avgScore >= 40 ? 'average-performer'
-                 : 'at-risk';
+                 : features.avgScore >= 40 ? 'average-performer' : 'at-risk';
   }
 
-  const { predictedScore, riskLevel }      = classify(features, clusterLabel);
+  const { predictedScore, riskLevel }           = classify(features, clusterLabel);
   const { readinessLabel, psychSummary, physSummary } = buildSummaries(features, clusterLabel);
 
   const updatePayload = {
@@ -251,32 +219,52 @@ export async function generatePredictionForStudent(studentMongoId, teacherMongoI
       summary:          psychSummary
     },
     physicalReadiness: {
-      avgScore:         Math.round(features.avgScore),
+      avgScore:          Math.round(features.avgScore),
       totalQuizzesTaken: features.quizCount,
-      scoretrend:       features.scoreTrend,
-      hintsUsedAvg:     parseFloat(features.hintsAvg.toFixed(2)),
-      summary:          physSummary
+      scoretrend:        features.scoreTrend,
+      hintsUsedAvg:      parseFloat(features.hintsAvg.toFixed(2)),
+      summary:           physSummary
     },
     dataSnapshot: {
-      quizCount:        features.quizCount,
-      avgQuizScore:     Math.round(features.avgScore),
-      emotionLogCount:  features.emotionLogCount,
-      happyRatio:       parseFloat(features.happyRatio.toFixed(3)),
-      confusedRatio:    parseFloat(features.confusedRatio.toFixed(3)),
-      anxiousRatio:     parseFloat(features.anxiousRatio.toFixed(3)),
-      angryRatio:       parseFloat(features.angryRatio.toFixed(3)),
-      neutralRatio:     parseFloat(features.neutralRatio.toFixed(3)),
-      avgConfidence:    parseFloat(features.avgConfidence.toFixed(3)),
-      avgFriction:      parseFloat(features.avgFriction.toFixed(3))
+      quizCount:       features.quizCount,
+      avgQuizScore:    Math.round(features.avgScore),
+      emotionLogCount: features.emotionLogCount,
+      happyRatio:      parseFloat(features.happyRatio.toFixed(3)),
+      confusedRatio:   parseFloat(features.confusedRatio.toFixed(3)),
+      anxiousRatio:    parseFloat(features.anxiousRatio.toFixed(3)),
+      angryRatio:      parseFloat(features.angryRatio.toFixed(3)),
+      neutralRatio:    parseFloat(features.neutralRatio.toFixed(3)),
+      avgConfidence:   parseFloat(features.avgConfidence.toFixed(3)),
+      avgFriction:     parseFloat(features.avgFriction.toFixed(3))
     },
     $inc: { version: 1 }
   };
 
-  await FinalMarkPrediction.findOneAndUpdate(
+  const updated = await FinalMarkPrediction.findOneAndUpdate(
     { studentId: studentMongoId, teacherId: teacherMongoId },
     updatePayload,
     { upsert: true, new: true }
   );
+
+  // ── Save history snapshot (append-only, never overwrite) ─────────────────
+  await PredictionHistory.create({
+    studentId:        studentMongoId,
+    teacherId:        teacherMongoId,
+    version:          updated.version,
+    predictedScore,
+    adjustedScore:    null,
+    clusterLabel,
+    riskLevel,
+    stressIndex:      features.stressIndex,
+    confidenceIndex:  features.confidenceIndex,
+    dominantEmotion:  features.dominantEmotion,
+    readinessLabel,
+    avgQuizScore:     Math.round(features.avgScore),
+    totalQuizzesTaken: features.quizCount,
+    scoretrend:       features.scoreTrend,
+    trigger,
+    recordedAt:       new Date()
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -289,8 +277,7 @@ export async function getTeacherPredictions(req, res) {
     const teacherId = req.user.id;
     const predictions = await FinalMarkPrediction.find({ teacherId })
       .populate('studentId', 'name email studentId grade year semester profileImage')
-      .sort({ updatedAt: -1 })
-      .lean();
+      .sort({ updatedAt: -1 }).lean();
     res.json({ success: true, predictions });
   } catch (err) {
     console.error('getTeacherPredictions error:', err);
@@ -298,15 +285,14 @@ export async function getTeacherPredictions(req, res) {
   }
 }
 
-// POST /api/predictions/generate/:studentId  (teacher manually triggers)
+// POST /api/predictions/generate/:studentId
 export async function triggerPrediction(req, res) {
   try {
-    const teacherId  = req.user.id;
+    const teacherId = req.user.id;
     const { studentId } = req.params;
-    await generatePredictionForStudent(studentId, teacherId);
+    await generatePredictionForStudent(studentId, teacherId, 'manual_regenerate');
     const prediction = await FinalMarkPrediction.findOne({ studentId, teacherId })
-      .populate('studentId', 'name email studentId grade')
-      .lean();
+      .populate('studentId', 'name email studentId grade').lean();
     res.json({ success: true, prediction });
   } catch (err) {
     console.error('triggerPrediction error:', err);
@@ -328,10 +314,18 @@ export async function approvePrediction(req, res) {
     prediction.approvedAt = new Date();
     if (adjustedScore !== undefined && adjustedScore !== null)
       prediction.adjustedScore = Math.max(0, Math.min(100, Number(adjustedScore)));
-    if (teacherNote !== undefined)
-      prediction.teacherNote = teacherNote;
-
+    if (teacherNote !== undefined) prediction.teacherNote = teacherNote;
     await prediction.save();
+
+    // Update the latest history entry with the adjusted score
+    if (adjustedScore !== undefined && adjustedScore !== null) {
+      await PredictionHistory.findOneAndUpdate(
+        { studentId: prediction.studentId, teacherId, version: prediction.version },
+        { adjustedScore: Math.max(0, Math.min(100, Number(adjustedScore))) },
+        { sort: { recordedAt: -1 } }
+      );
+    }
+
     res.json({ success: true, prediction });
   } catch (err) {
     console.error('approvePrediction error:', err);
@@ -364,12 +358,8 @@ export async function getStudentPrediction(req, res) {
   try {
     const studentId = req.user.id;
     const prediction = await FinalMarkPrediction.findOne({ studentId, status: 'approved' })
-      .populate('teacherId', 'name teacherId')
-      .sort({ approvedAt: -1 })
-      .lean();
-
+      .populate('teacherId', 'name teacherId').sort({ approvedAt: -1 }).lean();
     if (!prediction) return res.json({ success: true, prediction: null });
-
     res.json({
       success: true,
       prediction: { ...prediction, finalScore: prediction.adjustedScore ?? prediction.predictedScore }
@@ -380,13 +370,46 @@ export async function getStudentPrediction(req, res) {
   }
 }
 
+// GET /api/predictions/student/me/timeline
+// Student can see their own approved timeline
+export async function getStudentTimeline(req, res) {
+  try {
+    const studentId = req.user.id;
+    const history = await PredictionHistory.find({ studentId })
+      .sort({ recordedAt: 1 }).lean();
+    res.json({ success: true, history });
+  } catch (err) {
+    console.error('getStudentTimeline error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
+// GET /api/predictions/history/:studentId  (teacher view)
+export async function getStudentHistory(req, res) {
+  try {
+    const teacherId = req.user.id;
+    const { studentId } = req.params;
+
+    const history = await PredictionHistory.find({ studentId, teacherId })
+      .sort({ recordedAt: 1 }).lean();
+
+    // Also return current prediction for header stats
+    const current = await FinalMarkPrediction.findOne({ studentId, teacherId })
+      .populate('studentId', 'name studentId profileImage').lean();
+
+    res.json({ success: true, history, current });
+  } catch (err) {
+    console.error('getStudentHistory error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
 // GET /api/predictions/classroom-overview
 export async function getClassroomOverview(req, res) {
   try {
     const teacherId   = req.user.id;
     const predictions = await FinalMarkPrediction.find({ teacherId })
-      .populate('studentId', 'name studentId year semester')
-      .lean();
+      .populate('studentId', 'name studentId year semester').lean();
 
     const overview = {
       total:    predictions.length,
@@ -415,7 +438,6 @@ export async function getClassroomOverview(req, res) {
         readinessLabel: p.psychologicalReadiness?.readinessLabel
       }))
     };
-
     res.json({ success: true, overview });
   } catch (err) {
     console.error('getClassroomOverview error:', err);
