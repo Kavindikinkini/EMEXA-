@@ -104,7 +104,7 @@ function ApproveModal({ prediction, onClose, onDone, authHeader }) {
               textAlign: 'center', outline: 'none' }}
           />
           <span style={{ fontSize: 13, color: '#9ca3af' }}>
-            AI predicted: <strong style={{ color: '#6366f1' }}>
+            Predicted: <strong style={{ color: '#6366f1' }}>
               {prediction.predictedScore != null ? `${prediction.predictedScore}%` : '—'}
             </strong>
           </span>
@@ -121,7 +121,7 @@ function ApproveModal({ prediction, onClose, onDone, authHeader }) {
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <button onClick={submit} disabled={loading} style={{
             flex: 1, padding: '10px 0', borderRadius: 8, border: 'none',
-            background: '#6366f1', color: '#fff', fontWeight: 600, fontSize: 14,
+            background: '#0d9488', color: '#fff', fontWeight: 600, fontSize: 14,
             cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1
           }}>
             {loading ? 'Approving…' : 'Approve & send to student'}
@@ -282,7 +282,7 @@ function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, on
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setApproving(true)} style={{
                 padding: '9px 18px', borderRadius: 8, border: 'none',
-                background: '#6366f1', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer'
+                background: '#0d9488', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer'
               }}>Review & approve</button>
               {prediction.status !== 'rejected' && (
                 <button onClick={async () => { setRejecting(true); await onReject(prediction._id); setRejecting(false); }}
@@ -421,7 +421,7 @@ export default function TeacherPredictions() {
   });
 
   return (
-    <div style={{ padding: '28px 24px', maxWidth: 900, margin: '0 auto',
+    <div style={{ padding: '5px 0px', maxWidth: 960, margin: '0 auto',
       fontFamily: "'Inter', sans-serif" }}>
 
       {/* Toast */}
@@ -452,7 +452,7 @@ export default function TeacherPredictions() {
         <button onClick={handleSeedAll} disabled={seeding} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 20px', borderRadius: 10, border: 'none',
-          background: seeding ? '#e0e7ff' : '#6366f1', color: '#fff',
+          background: seeding ? '#ccfbf1' : '#0d9488', color: '#fff',
           fontWeight: 700, fontSize: 14, cursor: seeding ? 'not-allowed' : 'pointer',
           boxShadow: '0 2px 8px rgba(99,102,241,0.25)', whiteSpace: 'nowrap'
         }}>
@@ -490,7 +490,7 @@ export default function TeacherPredictions() {
           </p>
           <button onClick={handleSeedAll} disabled={seeding} style={{
             padding: '11px 28px', borderRadius: 10, border: 'none',
-            background: '#6366f1', color: '#fff', fontWeight: 700,
+            background: '#0d9488', color: '#fff', fontWeight: 700,
             fontSize: 14, cursor: seeding ? 'not-allowed' : 'pointer'
           }}>
             {seeding ? 'Generating…' : '⚡ Generate all predictions'}
@@ -509,9 +509,9 @@ export default function TeacherPredictions() {
           {['all', 'pending', 'approved', 'at-risk'].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-              border: `1.5px solid ${filter === f ? '#6366f1' : '#e5e7eb'}`,
-              background: filter === f ? '#ede9fe' : '#fff',
-              color: filter === f ? '#6366f1' : '#374151',
+              border: `1.5px solid ${filter === f ? '#0d9488' : '#e5e7eb'}`,
+              background: filter === f ? '#ccfbf1' : '#fff',
+              color: filter === f ? '#0d9488' : '#374151',
               cursor: 'pointer', textTransform: 'capitalize'
             }}>
               {f === 'all' ? `All (${predictions.length})` : f}
