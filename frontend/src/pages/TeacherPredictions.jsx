@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import ExamReadinessTimeline from "../components/ExamReadinessTimeline";
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// ── Colour helpers ────────────────────────────────────────────────────────────
 const CLUSTER_META = {
   'high-performer':    { label: 'High performer',   bg: '#d1fae5', text: '#065f46', dot: '#10b981' },
   'average-performer': { label: 'Average performer', bg: '#fef9c3', text: '#713f12', dot: '#eab308' },
@@ -21,7 +21,6 @@ const READINESS_META = {
   'needs-support':       { icon: '◉', color: '#ef4444' }
 };
 
-// ── Score gauge ───────────────────────────────────────────────────────────────
 function ScoreGauge({ value, size = 64, color = '#6366f1' }) {
   const r    = (size / 2) - 6;
   const circ = 2 * Math.PI * r;
@@ -45,7 +44,6 @@ function ScoreGauge({ value, size = 64, color = '#6366f1' }) {
   );
 }
 
-// ── Emotion bar ───────────────────────────────────────────────────────────────
 function EmotionBar({ label, ratio, color }) {
   return (
     <div style={{ marginBottom: 4 }}>
@@ -62,7 +60,6 @@ function EmotionBar({ label, ratio, color }) {
   );
 }
 
-// ── Approve modal ─────────────────────────────────────────────────────────────
 function ApproveModal({ prediction, onClose, onDone, authHeader }) {
   const [adjustedScore, setAdjustedScore] = useState(
     prediction.adjustedScore ?? prediction.predictedScore ?? ''
@@ -104,7 +101,7 @@ function ApproveModal({ prediction, onClose, onDone, authHeader }) {
               textAlign: 'center', outline: 'none' }}
           />
           <span style={{ fontSize: 13, color: '#9ca3af' }}>
-            Predicted: <strong style={{ color: '#6366f1' }}>
+            Predicted: <strong style={{ color: '#0d9488' }}>
               {prediction.predictedScore != null ? `${prediction.predictedScore}%` : '—'}
             </strong>
           </span>
@@ -135,9 +132,9 @@ function ApproveModal({ prediction, onClose, onDone, authHeader }) {
   );
 }
 
-// ── Student prediction card ───────────────────────────────────────────────────
 function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, onRefresh }) {
   const [expanded,  setExpanded]  = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
 
@@ -164,8 +161,8 @@ function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, on
       {/* Header */}
       <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-          background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 17, fontWeight: 700, color: '#6366f1', overflow: 'hidden' }}>
+          background: '#ccfbf1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 17, fontWeight: 700, color: '#0d9488', overflow: 'hidden' }}>
           {s.profileImage
             ? <img src={s.profileImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
             : (s.name || '?')[0].toUpperCase()}
@@ -207,108 +204,144 @@ function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, on
 
       {/* Expanded detail */}
       {expanded && (
-        <div style={{ borderTop: '1px solid #f3f4f6', padding: '18px 20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+        <div style={{ borderTop: '1px solid #f3f4f6' }}>
 
-            {/* Psychological readiness */}
-            <div style={{ background: '#fafafa', borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151',
-                textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                Psychological readiness
-              </div>
-              <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
-                <div style={{ textAlign: 'center' }}>
-                  <ScoreGauge value={psych.stressIndex}     size={52} color="#ef4444"/>
-                  <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Stress</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <ScoreGauge value={psych.confidenceIndex} size={52} color="#10b981"/>
-                  <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Confidence</div>
-                </div>
-              </div>
-              <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>
-                Dominant emotion:{' '}
-                <strong style={{ color: '#374151', textTransform: 'capitalize' }}>
-                  {psych.dominantEmotion || '—'}
-                </strong>
-              </div>
-              <EmotionBar label="happy"    ratio={snap.happyRatio}    color="#10b981"/>
-              <EmotionBar label="neutral"  ratio={snap.neutralRatio}  color="#6b7280"/>
-              <EmotionBar label="confused" ratio={snap.confusedRatio} color="#f59e0b"/>
-              <EmotionBar label="anxious"  ratio={snap.anxiousRatio}  color="#f97316"/>
-              <EmotionBar label="angry"    ratio={snap.angryRatio}    color="#ef4444"/>
-              {psych.summary && (
-                <p style={{ fontSize: 11, color: '#6b7280', margin: '10px 0 0',
-                  lineHeight: 1.5, borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
-                  {psych.summary}
-                </p>
-              )}
-            </div>
-
-            {/* Academic readiness */}
-            <div style={{ background: '#fafafa', borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#374151',
-                textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                Academic readiness
-              </div>
-              <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                <ScoreGauge value={phys.avgScore} size={58} color="#6366f1"/>
-                <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Avg quiz score</div>
-              </div>
-              <div style={{ fontSize: 12, color: '#6b7280',
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                <div>Quizzes <strong style={{ color: '#111827' }}>{phys.totalQuizzesTaken}</strong></div>
-                <div>Trend <strong style={{ color: '#111827', textTransform: 'capitalize' }}>{phys.scoretrend}</strong></div>
-                <div>Avg hints <strong style={{ color: '#111827' }}>{phys.hintsUsedAvg}</strong></div>
-                <div>Version <strong style={{ color: '#111827' }}>v{prediction.version}</strong></div>
-              </div>
-              {phys.summary && (
-                <p style={{ fontSize: 11, color: '#6b7280', margin: '10px 0 0',
-                  lineHeight: 1.5, borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
-                  {phys.summary}
-                </p>
-              )}
-            </div>
+          {/* Tab bar */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 20px' }}>
+            {[
+              { key: 'overview', label: 'Overview' },
+              { key: 'timeline', label: 'Readiness timeline' }
+            ].map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                padding: '12px 18px', background: 'none', border: 'none',
+                fontSize: 13, fontWeight: activeTab === tab.key ? 700 : 400,
+                color: activeTab === tab.key ? '#0d9488' : '#6b7280',
+                borderBottom: activeTab === tab.key ? '2px solid #0d9488' : '2px solid transparent',
+                cursor: 'pointer', marginBottom: -1, transition: 'color 0.15s'
+              }}>
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {prediction.teacherNote && (
-            <div style={{ background: '#eff6ff', borderRadius: 8, padding: '10px 14px',
-              fontSize: 12, color: '#1e40af', marginBottom: 14 }}>
-              <strong>Your note:</strong> {prediction.teacherNote}
+          {/* Overview tab */}
+          {activeTab === 'overview' && (
+            <div style={{ padding: '18px 20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+
+                {/* Psychological readiness */}
+                <div style={{ background: '#fafafa', borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#374151',
+                    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+                    Psychological readiness
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <ScoreGauge value={psych.stressIndex}     size={52} color="#ef4444"/>
+                      <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Stress</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <ScoreGauge value={psych.confidenceIndex} size={52} color="#10b981"/>
+                      <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Confidence</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>
+                    Dominant emotion:{' '}
+                    <strong style={{ color: '#374151', textTransform: 'capitalize' }}>
+                      {psych.dominantEmotion || '—'}
+                    </strong>
+                  </div>
+                  <EmotionBar label="happy"    ratio={snap.happyRatio}    color="#10b981"/>
+                  <EmotionBar label="neutral"  ratio={snap.neutralRatio}  color="#6b7280"/>
+                  <EmotionBar label="confused" ratio={snap.confusedRatio} color="#f59e0b"/>
+                  <EmotionBar label="anxious"  ratio={snap.anxiousRatio}  color="#f97316"/>
+                  <EmotionBar label="angry"    ratio={snap.angryRatio}    color="#ef4444"/>
+                  {psych.summary && (
+                    <p style={{ fontSize: 11, color: '#6b7280', margin: '10px 0 0',
+                      lineHeight: 1.5, borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
+                      {psych.summary}
+                    </p>
+                  )}
+                </div>
+
+                {/* Academic readiness */}
+                <div style={{ background: '#fafafa', borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#374151',
+                    textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+                    Academic readiness
+                  </div>
+                  <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                    <ScoreGauge value={phys.avgScore} size={58} color="#0d9488"/>
+                    <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>Avg quiz score</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280',
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    <div>Quizzes <strong style={{ color: '#111827' }}>{phys.totalQuizzesTaken}</strong></div>
+                    <div>Trend <strong style={{ color: '#111827', textTransform: 'capitalize' }}>{phys.scoretrend}</strong></div>
+                    <div>Avg hints <strong style={{ color: '#111827' }}>{phys.hintsUsedAvg}</strong></div>
+                    <div>Version <strong style={{ color: '#111827' }}>v{prediction.version}</strong></div>
+                  </div>
+                  {phys.summary && (
+                    <p style={{ fontSize: 11, color: '#6b7280', margin: '10px 0 0',
+                      lineHeight: 1.5, borderTop: '1px solid #e5e7eb', paddingTop: 8 }}>
+                      {phys.summary}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {prediction.teacherNote && (
+                <div style={{ background: '#f0fdfa', borderRadius: 8, padding: '10px 14px',
+                  fontSize: 12, color: '#0d9488', marginBottom: 14 }}>
+                  <strong>Your note:</strong> {prediction.teacherNote}
+                </div>
+              )}
+
+              {prediction.status !== 'approved' && prediction.clusterLabel !== 'insufficient-data' && (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setApproving(true)} style={{
+                    padding: '9px 18px', borderRadius: 8, border: 'none',
+                    background: '#0d9488', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer'
+                  }}>Review & approve</button>
+                  {prediction.status !== 'rejected' && (
+                    <button onClick={async () => { setRejecting(true); await onReject(prediction._id); setRejecting(false); }}
+                      disabled={rejecting} style={{
+                        padding: '9px 18px', borderRadius: 8, border: '1px solid #fee2e2',
+                        background: '#fff', color: '#ef4444', fontWeight: 600, fontSize: 13,
+                        cursor: rejecting ? 'not-allowed' : 'pointer'
+                      }}>{rejecting ? 'Rejecting…' : 'Reject'}</button>
+                  )}
+                  <button onClick={() => onRefresh(prediction.studentId?._id || prediction.studentId)} style={{
+                    padding: '9px 14px', borderRadius: 8, border: '1px solid #e5e7eb',
+                    background: '#fff', color: '#374151', fontSize: 13, cursor: 'pointer'
+                  }}>↻ Regenerate</button>
+                </div>
+              )}
+              {prediction.status === 'approved' && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
+                    ✓ Approved — visible to student
+                  </span>
+                  <button onClick={() => onRefresh(prediction.studentId?._id || prediction.studentId)} style={{
+                    padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
+                    background: '#fff', color: '#374151', fontSize: 12, cursor: 'pointer'
+                  }}>↻ Regenerate</button>
+                </div>
+              )}
             </div>
           )}
 
-          {prediction.status !== 'approved' && prediction.clusterLabel !== 'insufficient-data' && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setApproving(true)} style={{
-                padding: '9px 18px', borderRadius: 8, border: 'none',
-                background: '#0d9488', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer'
-              }}>Review & approve</button>
-              {prediction.status !== 'rejected' && (
-                <button onClick={async () => { setRejecting(true); await onReject(prediction._id); setRejecting(false); }}
-                  disabled={rejecting} style={{
-                    padding: '9px 18px', borderRadius: 8, border: '1px solid #fee2e2',
-                    background: '#fff', color: '#ef4444', fontWeight: 600, fontSize: 13,
-                    cursor: rejecting ? 'not-allowed' : 'pointer'
-                  }}>{rejecting ? 'Rejecting…' : 'Reject'}</button>
-              )}
-              <button onClick={() => onRefresh(prediction.studentId?._id || prediction.studentId)} style={{
-                padding: '9px 14px', borderRadius: 8, border: '1px solid #e5e7eb',
-                background: '#fff', color: '#374151', fontSize: 13, cursor: 'pointer'
-              }}>↻ Regenerate</button>
+          {/* Timeline tab */}
+          {activeTab === 'timeline' && (
+            <div style={{ padding: '18px 20px' }}>
+              <ExamReadinessTimeline
+                studentId={s._id || (typeof prediction.studentId === 'object'
+                  ? prediction.studentId._id : prediction.studentId)}
+                studentName={s.name}
+              />
             </div>
           )}
-          {prediction.status === 'approved' && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
-                ✓ Approved — visible to student
-              </span>
-              <button onClick={() => onRefresh(prediction.studentId?._id || prediction.studentId)} style={{
-                padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
-                background: '#fff', color: '#374151', fontSize: 12, cursor: 'pointer'
-              }}>↻ Regenerate</button>
-            </div>
-          )}
+
         </div>
       )}
 
@@ -321,15 +354,14 @@ function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, on
   );
 }
 
-// ── Overview bar ──────────────────────────────────────────────────────────────
 function OverviewBar({ overview }) {
   if (!overview) return null;
   const cards = [
-    { label: 'Total students', value: overview.total,                        color: '#6366f1' },
-    { label: 'Approved',       value: overview.approved,                     color: '#10b981' },
-    { label: 'Pending review', value: overview.pending,                      color: '#f59e0b' },
-    { label: 'High risk',      value: overview.riskBreakdown?.high || 0,     color: '#ef4444' },
-    { label: 'Avg predicted',  value: `${overview.avgPredictedScore}%`,      color: '#374151' }
+    { label: 'Total students', value: overview.total,                    color: '#0d9488' },
+    { label: 'Approved',       value: overview.approved,                 color: '#10b981' },
+    { label: 'Pending review', value: overview.pending,                  color: '#f59e0b' },
+    { label: 'High risk',      value: overview.riskBreakdown?.high || 0, color: '#ef4444' },
+    { label: 'Avg predicted',  value: `${overview.avgPredictedScore}%`,  color: '#374151' }
   ];
   return (
     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
@@ -344,7 +376,6 @@ function OverviewBar({ overview }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function TeacherPredictions() {
   const [predictions, setPredictions] = useState([]);
   const [overview,    setOverview]    = useState(null);
@@ -365,7 +396,7 @@ export default function TeacherPredictions() {
     setLoading(true);
     try {
       const [predsRes, overviewRes] = await Promise.all([
-        axios.get(`${API}/api/predictions/teacher/all`,       { headers: authHeader }),
+        axios.get(`${API}/api/predictions/teacher/all`,        { headers: authHeader }),
         axios.get(`${API}/api/predictions/classroom-overview`, { headers: authHeader })
       ]);
       setPredictions(predsRes.data.predictions || []);
@@ -376,7 +407,6 @@ export default function TeacherPredictions() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Seed all existing students ────────────────────────────────────────────
   const handleSeedAll = async () => {
     setSeeding(true);
     try {
@@ -448,13 +478,13 @@ export default function TeacherPredictions() {
           </p>
         </div>
 
-        {/* ── Generate All button ── */}
+        {/* Generate All button — your teal colour */}
         <button onClick={handleSeedAll} disabled={seeding} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 20px', borderRadius: 10, border: 'none',
           background: seeding ? '#ccfbf1' : '#0d9488', color: '#fff',
           fontWeight: 700, fontSize: 14, cursor: seeding ? 'not-allowed' : 'pointer',
-          boxShadow: '0 2px 8px rgba(99,102,241,0.25)', whiteSpace: 'nowrap'
+          boxShadow: '0 2px 8px rgba(13,148,136,0.25)', whiteSpace: 'nowrap'
         }}>
           {seeding ? (
             <>
@@ -473,7 +503,7 @@ export default function TeacherPredictions() {
 
       <OverviewBar overview={overview} />
 
-      {/* Empty state with prompt to generate */}
+      {/* Empty state */}
       {!loading && predictions.length === 0 && (
         <div style={{ textAlign: 'center', padding: '48px 24px',
           background: '#fafafa', borderRadius: 16, border: '1.5px dashed #d1d5db',
@@ -498,7 +528,7 @@ export default function TeacherPredictions() {
         </div>
       )}
 
-      {/* Search + filter */}
+      {/* Search + filter — your teal active colour */}
       {predictions.length > 0 && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
           <input placeholder="Search student name or ID…" value={search}
