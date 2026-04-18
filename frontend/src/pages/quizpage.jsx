@@ -16,6 +16,7 @@ import teacherQuizService from "../services/teacherQuizService";
 import headerLogo from "../assets/headerlogo.png";
 import DownloadIcon from "../assets/download.png";
 import SelfReflectionModal from '../components/SelfReflectionModal';
+import { logEmotionSession } from '../hooks/useLearningPath';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
@@ -1356,6 +1357,24 @@ await awardGamificationPoints({
               });
               
               console.log('🎉 Gamification complete!');
+// ── AELP: log emotion session for learning path ──
+try {
+  const correctCount = quizData.questions.filter(
+    (q, i) => answers[i] === q.correctAnswer
+  ).length;
+  await logEmotionSession({
+    topic:           quizData.subject || quizData.title,
+    subject:         quizData.subject || "General",
+    emotionLog:      emotionHistory,
+    correctAnswers:  correctCount,
+    totalQuestions:  quizData.questions.length,
+    durationMinutes: Math.round(totalTime / 60),
+    quizId:          quizId,
+  });
+  console.log('📊 AELP: Emotion session logged');
+} catch (aelpErr) {
+  console.error('⚠️ AELP log failed (quiz still submitted):', aelpErr);
+}
             }
           } catch (gamificationError) {
             console.error('⚠️ Gamification failed (quiz still submitted):', gamificationError);

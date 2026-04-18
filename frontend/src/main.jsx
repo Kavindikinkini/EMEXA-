@@ -38,6 +38,7 @@ import ParentLogin from './pages/ParentLogin';
 import ParentRegister from './pages/ParentRegister';
 import ParentDashboard from './pages/ParentDashboard';
 import TeacherPredictions from './pages/TeacherPredictions';
+import LearningPathPage from './pages/LearningPathPage';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -259,6 +260,14 @@ createRoot(document.getElementById("root")).render(
 <Route path="/parent/login"     element={<ParentLogin />} />
 <Route path="/parent/register"  element={<ParentRegister />} />
 <Route path="/parent/dashboard" element={<ParentDashboard />} />
+<Route
+  path="/learning-path"
+  element={
+    <RequireAuth allowedRoles={["student", "admin"]}>
+      <LearningPathPage />
+    </RequireAuth>
+  }
+/>
 
         {/* 404 Catch-all - Redirect to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
