@@ -13,6 +13,7 @@ import PersonalAnalytics from '../components/PersonalAnalytics';
 import StudyRecommendations from '../components/StudyRecommendations';
 import BurnoutDetection from '../components/BurnoutDetection';
 import PredictionBadge from '../components/PredictionBadge';
+import { useLearningPath } from '../hooks/useLearningPath';
 
 // Helper function to convert 24-hour time to 12-hour AM/PM format
 const formatTime12Hour = (time24) => {
@@ -347,6 +348,7 @@ const StudentDashboard = () => {
   }
 
   const DashboardContent = () => {
+    const { path: learningPath } = useLearningPath(); 
     // Calculate completion percentage
     const totalQuizzes = dashboardData?.totalQuizzes || 0;
     const completedQuizzes = totalQuizzes; // All quizzes in totalQuizzes are completed
@@ -354,7 +356,6 @@ const StudentDashboard = () => {
       totalQuizzes > 0
         ? Math.round((completedQuizzes / totalQuizzes) * 100)
         : 0;
-
     // Calculate average score percentage for progress bar
     const averageScore = dashboardData?.averageScore || 0;
 
@@ -996,6 +997,50 @@ const StudentDashboard = () => {
             </div>
             <div className="mt-6">
               <PredictionBadge />
+
+              {/* AELP Quick Access Card */}
+<div
+  onClick={() => navigate("/learning-path")}
+  className="mt-6 bg-white rounded-lg p-5 border border-gray-200 cursor-pointer hover:border-teal-300 hover:shadow-sm transition"
+>
+  <div className="flex justify-between items-center mb-2">
+    <h2 className="text-base font-bold text-gray-900">My Learning Path</h2>
+    <span className="text-xs text-teal-600 font-medium">View Full Path →</span>
+  </div>
+  {learningPath?.topics?.[0] ? (
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm text-gray-600">
+          Next priority:{" "}
+          <strong className="text-gray-900">{learningPath.topics[0].topic}</strong>
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Streak: {learningPath.currentStreak} day{learningPath.currentStreak !== 1 ? "s" : ""} · 
+          Recommended: {learningPath.recommendedDailyMinutes} min/day
+        </p>
+      </div>
+      {learningPath.burnoutRisk === "high" && (
+        <span className="text-xs bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded-full">
+          ⚠️ Take it easy today
+        </span>
+      )}
+      {learningPath.burnoutRisk === "moderate" && (
+        <span className="text-xs bg-yellow-50 text-yellow-700 border border-yellow-200 px-2 py-1 rounded-full">
+          Steady pace
+        </span>
+      )}
+      {learningPath.burnoutRisk === "low" && (
+        <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-full">
+          You're doing great
+        </span>
+      )}
+    </div>
+  ) : (
+    <p className="text-sm text-gray-500">
+      Complete a quiz to generate your personalized learning path.
+    </p>
+  )}
+</div>
             </div>
           </div>
         </div>
@@ -1085,6 +1130,17 @@ const StudentDashboard = () => {
     ),
     onClick: () => navigate("/journal"),
   },
+  {
+  id: "learning-path",
+  label: "Learning Path",
+  icon: (
+    <svg className="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+    </svg>
+  ),
+  onClick: () => navigate("/learning-path"),
+},
     {
       id: "profile",
       label: "Profile",
