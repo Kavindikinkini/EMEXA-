@@ -346,7 +346,7 @@ function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, on
       )}
 
       {approving && (
-        <ApproveModal prediction={prediction} authHeader={authHeader}
+        <ApproveModal prediction={prediction} authHeader={getAuthHeader()}
           onClose={() => setApproving(false)}
           onDone={() => { setApproving(false); onApprove(); }} />
       )}
@@ -385,7 +385,7 @@ export default function TeacherPredictions() {
   const [search,      setSearch]      = useState('');
   const [toast,       setToast]       = useState(null);
 
-  const authHeader = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+  const getAuthHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}` });
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -396,8 +396,8 @@ export default function TeacherPredictions() {
     setLoading(true);
     try {
       const [predsRes, overviewRes] = await Promise.all([
-        axios.get(`${API}/api/predictions/teacher/all`,        { headers: authHeader }),
-        axios.get(`${API}/api/predictions/classroom-overview`, { headers: authHeader })
+        axios.get(`${API}/api/predictions/teacher/all`,        { headers: getAuthHeader() }),
+        axios.get(`${API}/api/predictions/classroom-overview`, { headers: getAuthHeader() })
       ]);
       setPredictions(predsRes.data.predictions || []);
       setOverview(overviewRes.data.overview    || null);
@@ -410,7 +410,7 @@ export default function TeacherPredictions() {
   const handleSeedAll = async () => {
     setSeeding(true);
     try {
-      const res = await axios.post(`${API}/api/predictions/seed-all`, {}, { headers: authHeader });
+      const res = await axios.post(`${API}/api/predictions/seed-all`, {}, { headers: getAuthHeader() });
       const { seeded, total, message } = res.data;
       if (seeded === 0) {
         showToast(message || 'No matching students found. Make sure students have year & semester set.', 'error');
@@ -425,7 +425,7 @@ export default function TeacherPredictions() {
 
   const handleReject = async (predictionId) => {
     try {
-      await axios.patch(`${API}/api/predictions/${predictionId}/reject`, {}, { headers: authHeader });
+      await axios.patch(`${API}/api/predictions/${predictionId}/reject`, {}, { headers: getAuthHeader() });
       showToast('Prediction rejected');
       fetchData();
     } catch { showToast('Failed to reject', 'error'); }
@@ -434,7 +434,7 @@ export default function TeacherPredictions() {
   const handleRefresh = async (studentId) => {
     const sid = typeof studentId === 'object' ? studentId._id : studentId;
     try {
-      await axios.post(`${API}/api/predictions/generate/${sid}`, {}, { headers: authHeader });
+      await axios.post(`${API}/api/predictions/generate/${sid}`, {}, { headers: getAuthHeader() });
       showToast('Prediction regenerated');
       fetchData();
     } catch { showToast('Failed to regenerate', 'error'); }
@@ -562,7 +562,7 @@ export default function TeacherPredictions() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map(p => (
-            <StudentPredictionCard key={p._id} prediction={p} authHeader={authHeader}
+            <StudentPredictionCard key={p._id} prediction={p} authHeader={getAuthHeader()}
               onApprove={fetchData} onReject={handleReject} onRefresh={handleRefresh} />
           ))}
         </div>
