@@ -934,7 +934,7 @@ const TeacherProfile = (props) => {
   const handleExportData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const API_BASE = "http://localhost:5000";
+      const API_BASE = "https://emexa-snowy.vercel.app";
       const response = await axios.get(`${API_BASE}/api/users/export-data`, {
         headers: { Authorization: `Bearer ${token}` },
       });

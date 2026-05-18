@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://emexa-snowy.vercel.app/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {

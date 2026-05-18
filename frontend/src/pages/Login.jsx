@@ -236,7 +236,7 @@ export default function Login() {
               localStorage.setItem(storageKey, resProfileImage);
               window.dispatchEvent(new CustomEvent(eventName, { detail: resProfileImage }));
             } else if (res.token) {
-              fetch('http://localhost:5000/api/users/profile', {
+              fetch('http://127.0.0.1:5000/api/users/profile', {
                 headers: { Authorization: `Bearer ${res.token}` }
               })
                 .then(r => r.ok ? r.json() : Promise.reject(r))
