@@ -87,6 +87,12 @@ const userSchema = new mongoose.Schema({
     enum: ['1st semester', '2nd semester', null],
     default: null 
   },
+
+  gender: {
+    type: String,
+    enum: ['Male', 'Female', 'Other', 'Prefer not to say', null],
+    default: null
+  },
   
   // Dashboard statistics
   totalQuizzes: { type: Number, default: 24 },
