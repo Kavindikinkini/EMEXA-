@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
-const BASE = "/api/learning-path";
+const BASE = (typeof import !== "undefined" ? (import.meta?.env?.VITE_API_BASE || "") : "") + "/api/learning-path";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
