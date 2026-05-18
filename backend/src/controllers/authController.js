@@ -15,7 +15,7 @@ const generateResetCode = () => {
 // ============================================
 export const register = async (req, res) => {
   try {
-    const { fullName, name, email, password, accountType, year, semester } = req.body;
+    const { fullName, name, email, password, accountType, year, semester, gender } = req.body;
     const userName = fullName || name;
     
     if (!userName || !email || !password) {
@@ -50,7 +50,8 @@ export const register = async (req, res) => {
       status: 'Pending',
       isActive: false,
       year: year || null,
-      semester: semester || null
+      semester: semester || null,
+      gender: gender || null
       
     });
 
@@ -310,7 +311,8 @@ export const approveStudent = async (req, res) => {
       notificationSettings: userRecord.notificationSettings,
       privacySettings: userRecord.privacySettings,
       year: userRecord.year,
-      semester: userRecord.semester
+      semester: userRecord.semester,
+      gender: userRecord.gender || null
     });
     
     await newStudent.save();
