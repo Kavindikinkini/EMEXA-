@@ -11,6 +11,7 @@ import {
   sendProfileUpdateEmail,
   sendSettingsChangeEmail 
 } from '../services/notificationEmail.service.js';
+import EmotionSession from '../models/EmotionSession.js';
 
 import { QuizResult } from '../models/quiz.js';
 import QuizAttempt from '../models/quizAttempt.js'; 
@@ -304,14 +305,31 @@ const getEmotionalState = async (req, res) => {
     
     console.log('😊 Fetching emotional state for teacher:', teacherId);
 
-    // TODO: Implement actual emotion tracking
-    // For now, return placeholder data
-    const emotionalData = {
-      happy: 40,
-      confused: 30,
-      frustrated: 20,
-      neutral: 10
-    };
+    // Get all quizzes by this teacher
+    const teacherQuizzes = await TeacherQuiz.find({ teacherId, isDeleted: false }).lean();
+    const quizIds = teacherQuizzes.map(q => q._id);
+
+    // Get all emotion sessions for students who took these quizzes
+    const sessions = await EmotionSession.find({ quizId: { $in: quizIds } }).lean();
+
+    // Count dominant emotions
+    const counts = { happy: 0, sad: 0, angry: 0, confused: 0, neutral: 0, anxious: 0, fearful: 0, surprised: 0 };
+    sessions.forEach(s => {
+      if (s.dominantEmotion && counts[s.dominantEmotion] !== undefined) {
+        counts[s.dominantEmotion]++;
+      }
+    });
+
+    // If no data, return zeros
+    const total = sessions.length;
+    const emotionalData = total === 0
+      ? { happy: 0, confused: 0, frustrated: 0, neutral: 0, noData: true }
+      : {
+          happy:      Math.round(((counts.happy + counts.surprised) / total) * 100),
+          confused:   Math.round((counts.confused / total) * 100),
+          frustrated: Math.round(((counts.angry + counts.fearful + counts.sad) / total) * 100),
+          neutral:    Math.round(((counts.neutral + counts.anxious) / total) * 100)
+        };
 
     res.json({
       success: true,
@@ -353,8 +371,7 @@ const getStudentOverview = async (req, res) => {
       recipientRole: 'student'
     }).lean();
 
-    // Get unique student IDs
-    const studentIds = [...new Set(notifications.map(n => n.recipientId))];
+    const studentIds = [...new Set(notifications.map(n => n.recipientId.toString()))];
 
     // Get student details and their quiz results
     const studentsData = await Promise.all(

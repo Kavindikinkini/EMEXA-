@@ -1,6 +1,7 @@
 // frontend/src/pages/TeacherDashboard.jsx
 // FIXED VERSION - With Auto-Refresh and Notification Listener
 
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
@@ -699,32 +700,28 @@ const DashboardContent = ({ refreshTrigger }) => { {/* ADDED: Accept refreshTrig
             Emotional State
           </h2>
           <div className="flex justify-center items-center h-64">
-            <svg className="w-64 h-64" viewBox="0 0 200 200">
-              {emotionalState && (
-                <>
-                  {/* Happy */}
-                  <path
-                    d={`M 100,100 L 100,0 A 100,100 0 0,1 ${100 + 100 * Math.cos((emotionalState.happy / 100) * 2 * Math.PI - Math.PI/2)},${100 + 100 * Math.sin((emotionalState.happy / 100) * 2 * Math.PI - Math.PI/2)} Z`}
-                    fill="#0f766e"
-                  />
-                  {/* Confused */}
-                  <path
-                    d={`M 100,100 L ${100 + 100 * Math.cos((emotionalState.happy / 100) * 2 * Math.PI - Math.PI/2)},${100 + 100 * Math.sin((emotionalState.happy / 100) * 2 * Math.PI - Math.PI/2)} A 100,100 0 0,1 ${100 + 100 * Math.cos(((emotionalState.happy + emotionalState.confused) / 100) * 2 * Math.PI - Math.PI/2)},${100 + 100 * Math.sin(((emotionalState.happy + emotionalState.confused) / 100) * 2 * Math.PI - Math.PI/2)} Z`}
-                    fill="#86efac"
-                  />
-                  {/* Frustrated */}
-                  <path
-                    d={`M 100,100 L ${100 + 100 * Math.cos(((emotionalState.happy + emotionalState.confused) / 100) * 2 * Math.PI - Math.PI/2)},${100 + 100 * Math.sin(((emotionalState.happy + emotionalState.confused) / 100) * 2 * Math.PI - Math.PI/2)} A 100,100 0 0,1 ${100 + 100 * Math.cos(((emotionalState.happy + emotionalState.confused + emotionalState.frustrated) / 100) * 2 * Math.PI - Math.PI/2)},${100 + 100 * Math.sin(((emotionalState.happy + emotionalState.confused + emotionalState.frustrated) / 100) * 2 * Math.PI - Math.PI/2)} Z`}
-                    fill="#14b8a6"
-                  />
-                  {/* Neutral */}
-                  <path
-                    d={`M 100,100 L ${100 + 100 * Math.cos(((emotionalState.happy + emotionalState.confused + emotionalState.frustrated) / 100) * 2 * Math.PI - Math.PI/2)},${100 + 100 * Math.sin(((emotionalState.happy + emotionalState.confused + emotionalState.frustrated) / 100) * 2 * Math.PI - Math.PI/2)} A 100,100 0 0,1 100,0 Z`}
-                    fill="#fde047"
-                  />
-                </>
-              )}
-            </svg>
+            {emotionalState && (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Happy",      value: emotionalState.happy      || 0 },
+                      { name: "Confused",   value: emotionalState.confused   || 0 },
+                      { name: "Frustrated", value: emotionalState.frustrated || 0 },
+                      { name: "Neutral",    value: emotionalState.neutral    || 0 }
+                    ].filter(d => d.value > 0)}
+                    cx="50%" cy="50%" outerRadius={90}
+                    dataKey="value"
+                  >
+                    <Cell fill="#0f766e" />
+                    <Cell fill="#86efac" />
+                    <Cell fill="#14b8a6" />
+                    <Cell fill="#fde047" />
+                  </Pie>
+                  <Tooltip formatter={(value) => `${value}%`} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
           <div className="flex justify-center flex-wrap gap-3 mt-2">
             <div className="flex items-center space-x-1">

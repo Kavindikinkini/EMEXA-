@@ -346,7 +346,7 @@ function StudentPredictionCard({ prediction, authHeader, onApprove, onReject, on
       )}
 
       {approving && (
-        <ApproveModal prediction={prediction} authHeader={getAuthHeader()}
+        <ApproveModal prediction={prediction} authHeader={authHeader}
           onClose={() => setApproving(false)}
           onDone={() => { setApproving(false); onApprove(); }} />
       )}

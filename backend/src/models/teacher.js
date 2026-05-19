@@ -23,6 +23,10 @@ const teacherSchema = new mongoose.Schema({
   
   // Profile image
   profileImage: { type: String, default: null },
+
+  // Password reset fields
+  resetPasswordCode: { type: String, select: false },
+  resetPasswordExpiry: { type: Date, select: false },
   
   // Teacher-specific fields
   teacherId: { type: String, unique: true, sparse: true },
