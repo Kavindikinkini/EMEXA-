@@ -1,6 +1,3 @@
-// backend/src/controllers/teacherController.js
-// FIXED VERSION - Corrected quiz time-based status categorization
-
 import Student from '../models/student.js';
 import Teacher from '../models/teacher.js';
 import User from '../models/user.js';
@@ -209,7 +206,7 @@ const getClassProgress = async (req, res) => {
 };
 
 // ============================================================================
-// FIXED: Get engagement trend (last 5 days with data, not current week)
+// Get engagement trend (last 5 days with data, not current week)
 // ============================================================================
 const getEngagementTrend = async (req, res) => {
   try {
@@ -225,7 +222,7 @@ const getEngagementTrend = async (req, res) => {
 
     const quizIds = teacherQuizzes.map(q => q._id);
 
-    // FIXED: Get total ASSIGNED students (not all students in database)
+    // Get total ASSIGNED students (not all students in database)
     const notifications = await Notification.find({
       quizId: { $in: quizIds },
       type: 'quiz_assigned',
@@ -241,7 +238,7 @@ const getEngagementTrend = async (req, res) => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
     const today = new Date();
     
-    // FIXED: Get last 5 weekdays instead of current week
+    // Get last 5 weekdays instead of current week
     // This ensures we always show 5 days with actual data
     for (let i = 4; i >= 0; i--) {
       const dayDate = new Date(today);
@@ -262,7 +259,7 @@ const getEngagementTrend = async (req, res) => {
       // Count unique students active on this day
       const activeStudents = [...new Set(dayResults.map(r => r.userId.toString()))].length;
 
-      // FIXED: Calculate engagement as % of assigned students who were active
+      // Calculate engagement as % of assigned students who were active
       let score = totalAssignedStudents > 0 
         ? Math.round((activeStudents / totalAssignedStudents) * 100)
         : 0;
@@ -296,8 +293,6 @@ const getEngagementTrend = async (req, res) => {
 
 /**
  * Get emotional state distribution
- * NOTE: This requires emotion tracking to be implemented
- * For now, returns placeholder data
  */
 const getEmotionalState = async (req, res) => {
   try {
@@ -440,7 +435,7 @@ const getStudentOverview = async (req, res) => {
 };
 
 // ============================================================================
-// FIXED: Sort recent quizzes - Active/Scheduled first, Drafts last
+// Sort recent quizzes - Active/Scheduled first, Drafts last
 // ============================================================================
 const getRecentQuizzes = async (req, res) => {
   try {
@@ -457,7 +452,7 @@ const getRecentQuizzes = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // FIXED: Sort by status priority (active/scheduled first, drafts last)
+    // Sort by status priority (active/scheduled first, drafts last)
     const sortedQuizzes = quizzes.sort((a, b) => {
       const statusPriority = {
         'active': 1,
@@ -1072,9 +1067,9 @@ export const getTeacherStats = async (req, res) => {
   }
 };
 
-// ============================================
-// ADDED: GET QUIZ PERFORMANCE DETAILS
-// ============================================
+
+// GET QUIZ PERFORMANCE DETAILS
+
 export const getQuizPerformance = async (req, res) => {
   try {
     const { quizId } = req.params;
