@@ -1,27 +1,7 @@
-import { HfInference } from '@huggingface/inference';
 import EmotionLog from '../models/emotionLog.js';
 import QuizAttempt from '../models/quizAttempt.js';
 import mongoose from 'mongoose';
-
-const hf = process.env.HF_API_KEY && process.env.HF_API_KEY !== 'hf_dummy_key_for_testing'
-  ? new HfInference(process.env.HF_API_KEY)
-  : null;
-
-const mapEmotion = (raw) => {
-  const map = {
-    happy: 'happy', joy: 'happy', excited: 'happy',
-    sad: 'sad', disappointed: 'sad',
-    angry: 'angry', frustrated: 'angry',
-    confused: 'confused', surprised: 'confused', disgust: 'confused',
-    fear: 'anxious', anxious: 'anxious',
-    neutral: 'neutral', calm: 'neutral'
-  };
-  return map[raw?.toLowerCase()] || 'neutral';
-};
-
-const frictionScore = {
-  happy: 0, neutral: 1, sad: 3, confused: 4, anxious: 4, angry: 5
-};
+import { classifyEmotion, frictionScore } from '../utils/emotionClassifier.js';
 
 export const detectEmotion = async (req, res) => {
   try {
@@ -34,51 +14,29 @@ export const detectEmotion = async (req, res) => {
       });
     }
 
-    const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+    const match = image.match(/^data:(image\/\w+);base64,(.+)$/);
+    const mimeType = match ? match[1] : 'image/jpeg';
+    const base64Data = match ? match[2] : image.replace(/^data:image\/\w+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    if (!hf) {
-      const emotionLog = new EmotionLog({
-        userId, sessionId, questionIndex,
-        quizId: quizId || null,  // ✅ FIX: save quizId so heatmap can find logs directly
-        emotion: 'neutral',
-        confidence: 1.0,
-        frictionScore: 1,
-        timestamp: new Date()
-      });
-      await emotionLog.save();
-      return res.status(200).json({
-        success: true,
-        data: { emotion: 'neutral', confidence: 1.0, timestamp: emotionLog.timestamp }
-      });
+    const result = await classifyEmotion(imageBuffer, mimeType);
+    if (result.isFallback) {
+      console.warn('⚠️ HF_API_KEY not configured — using neutral default, not a live reading');
     }
-
-    const result = await hf.imageClassification({
-      data: imageBuffer,
-      model: 'dima806/facial_emotions_image_detection'
-    });
-
-    if (!result || result.length === 0) {
-      return res.status(500).json({ success: false, message: 'Failed to detect emotion' });
-    }
-
-    const topPrediction = result[0];
-    const emotion = mapEmotion(topPrediction.label);
-    const confidence = topPrediction.score;
 
     const emotionLog = new EmotionLog({
       userId, sessionId, questionIndex,
-      quizId: quizId || null,  // ✅ FIX: save quizId
-      emotion,
-      confidence,
-      frictionScore: frictionScore[emotion] || 1,
+      quizId: quizId || null,
+      emotion: result.emotion,
+      confidence: result.confidence,
+      frictionScore: result.frictionScore,
       timestamp: new Date()
     });
     await emotionLog.save();
 
     res.status(200).json({
       success: true,
-      data: { emotion, confidence, timestamp: emotionLog.timestamp }
+      data: { emotion: result.emotion, confidence: result.confidence, timestamp: emotionLog.timestamp }
     });
 
   } catch (error) {
@@ -133,7 +91,6 @@ export const getClassEmotionHeatmap = async (req, res) => {
   try {
     const { quizId } = req.params;
 
-    // ✅ FIX: Convert string param to ObjectId
     let quizObjectId;
     try {
       quizObjectId = new mongoose.Types.ObjectId(quizId);
@@ -141,7 +98,6 @@ export const getClassEmotionHeatmap = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid quizId' });
     }
 
-    // Join through QuizAttempt → sessionIds (emotionlogs don't always have quizId)
     const attempts = await QuizAttempt.find({ quizId: quizObjectId })
       .select('sessionId userId')
       .lean();
@@ -161,7 +117,6 @@ export const getClassEmotionHeatmap = async (req, res) => {
     const sessionIds = attempts.map(a => a.sessionId).filter(Boolean);
     const userIds = [...new Set(attempts.map(a => a.userId?.toString()).filter(Boolean))];
 
-    // ✅ FIX: Query by sessionId (primary) OR quizId (for newer records that have it)
     const emotionLogs = await EmotionLog.find({
       $or: [
         { sessionId: { $in: sessionIds } },
@@ -181,7 +136,6 @@ export const getClassEmotionHeatmap = async (req, res) => {
       });
     }
 
-    // Build per-question breakdown
     const byQuestion = {};
     const studentSet = new Set();
 
@@ -204,13 +158,11 @@ export const getClassEmotionHeatmap = async (req, res) => {
       byQuestion[qIdx].students.add(log.userId?.toString() || log.sessionId);
     });
 
-    // ✅ FIX: field names match EmotionalHeatmap.jsx exactly
     const questionHeatmap = Object.values(byQuestion).map(q => {
       const avgFriction = q.totalFriction / q.totalCaptures;
       const dominantEmotion = Object.entries(q.emotions).sort(([, a], [, b]) => b - a)[0][0];
-      const intensity = Math.min(1, avgFriction / 5);  // 0.0–1.0 for colour scale
+      const intensity = Math.min(1, avgFriction / 5);
 
-      // ✅ FIX: frustrationRate as 0.0-1.0 (frontend checks q.frustrationRate > 0.3)
       const frustrationRate = (
         (q.emotions.angry || 0) + (q.emotions.confused || 0) + (q.emotions.anxious || 0)
       ) / q.totalCaptures;
@@ -227,7 +179,6 @@ export const getClassEmotionHeatmap = async (req, res) => {
       };
     }).sort((a, b) => a.questionIndex - b.questionIndex);
 
-    // ✅ FIX: avgClassFriction normalized to 0-1 (frontend shows as %)
     const avgClassFriction = questionHeatmap.length > 0
       ? Math.round(
           (questionHeatmap.reduce((s, q) => s + q.avgFriction, 0) / questionHeatmap.length)
@@ -240,7 +191,6 @@ export const getClassEmotionHeatmap = async (req, res) => {
     ).length;
     const avgFrustrationRate = Math.round((totalFrustration / emotionLogs.length) * 100) / 100;
 
-    // ✅ FIX: frictionHotspots as full objects (frontend maps over them with .questionIndex etc.)
     const frictionHotspots = [...questionHeatmap]
       .sort((a, b) => b.avgFriction - a.avgFriction)
       .slice(0, 3);
@@ -248,7 +198,7 @@ export const getClassEmotionHeatmap = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        questionHeatmap,        // ✅ frontend reads heatmapData.questionHeatmap
+        questionHeatmap,
         totalStudents: studentSet.size,
         avgClassFriction,
         avgFrustrationRate,

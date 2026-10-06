@@ -1,5 +1,5 @@
 import EmotionLog from '../models/emotionLog.js';
-import { getHfClient } from '../utils/hfClient.js';
+import { classifyEmotion } from '../utils/emotionClassifier.js';
 
 // Create a WebSocket server that receives webcam snapshots
 // every 1 minute, sends them to the emotion detection API,
@@ -15,7 +15,7 @@ export const initializeEmotionSocket = (io) => {
     // Handle emotion snapshot
     socket.on('emotion-snapshot', async (data) => {
       try {
-        const { image, userId, sessionId, questionIndex } = data;
+        const { image, userId, sessionId, questionIndex, quizId } = data;
 
         if (!image || !userId || !sessionId || questionIndex === undefined) {
           socket.emit('emotion-error', {
@@ -24,35 +24,35 @@ export const initializeEmotionSocket = (io) => {
           return;
         }
 
-        // Convert base64 to buffer
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        // Convert base64 to buffer, keeping the real MIME type from the
+        // data URL (the HF API rejects requests with no content type)
+        const match = image.match(/^data:(image\/\w+);base64,(.+)$/);
+        const mimeType = match ? match[1] : 'image/jpeg';
+        const base64Data = match ? match[2] : image.replace(/^data:image\/\w+;base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        // Check if HF client is available
-        const hfClient = getHfClient();
-        if (!hfClient) {
-          socket.emit('emotion-error', {
-            message: 'Emotion detection not available - API key not configured'
-          });
-          return;
-        }
-
-        // Call Hugging Face emotion recognition
+        // Call the REAL Hugging Face emotion recognition — same shared
+        // function and label/friction mapping emotionController.js uses.
+        // No random fallback.
         try {
-          // Generate random emotion for now (workaround for HF API auth issues)
-          // TODO: Switch to proper emotion detection when HF Inference API works
-          const emotions = ['happy', 'sad', 'angry', 'confused', 'neutral'];
-          const randomEmotion = emotions[Math.floor(Math.random() * emotions.length)];
-          const emotion = randomEmotion;
-          const confidence = 0.85 + Math.random() * 0.15; // 0.85-1.0
+          const { emotion, confidence, frictionScore, isFallback } =
+            await classifyEmotion(imageBuffer, mimeType);
 
-          // Save to database (NOT the image)
+          if (isFallback) {
+            console.warn('⚠️ HF_API_KEY not configured — using neutral default, not a live reading');
+          }
+
+          // Save to database (NOT the image) — same fields as the REST
+          // controller so heatmap/analytics queries see consistent data
+          // regardless of which entry point produced them.
           const emotionLog = new EmotionLog({
             userId,
             sessionId,
             questionIndex,
+            quizId: quizId || null,
             emotion,
             confidence,
+            frictionScore,
             timestamp: new Date()
           });
 
@@ -68,9 +68,13 @@ export const initializeEmotionSocket = (io) => {
 
           console.log(`😊 Emotion detected for user ${userId}: ${emotion} (${Math.round(confidence * 100)}%)`);
         } catch (classificationError) {
-          // Image classification failed - this is okay, just skip emotion detection
+          // Real classification failed or timed out — this is an
+          // unknown/no-classification state, NOT a fabricated label.
+          // Skip the trigger cycle; do not emit a fake result.
           console.log(`⚠️ Emotion classification skipped: ${classificationError.message}`);
-          // Don't emit error to client, it's not critical
+          socket.emit('emotion-error', {
+            message: 'Emotion classification unavailable for this frame'
+          });
         }
       } catch (error) {
         console.error('Emotion detection error:', error);

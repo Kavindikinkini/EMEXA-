@@ -155,13 +155,11 @@ const QuizPage = () => {
     );
 
     if (cameraPermission === "allowed") {
-      // Camera was allowed on permission page - enable AI hints
-      console.log("✅ Camera permission allowed - Enabling AI hints");
-      setWebcamEnabled(true);
-      setCameraPermissionDenied(false);
-      // Initialize AI socket for emotion tracking
-      initializeAI();
-    } else {
+  console.log("✅ Camera permission allowed - Requesting live camera stream");
+  setCameraPermissionDenied(false);
+  requestCameraPermission();
+}
+    else {
       // Camera was denied or skipped - use teacher hints only
       console.log("❌ Camera permission denied - Using teacher hints only");
       setWebcamEnabled(false);
@@ -187,13 +185,22 @@ const QuizPage = () => {
     };
   }, [quizId]);
 
-  // Attach video stream to element when it becomes available
   useEffect(() => {
-    if (videoRef.current && videoStream && !videoRef.current.srcObject) {
-      videoRef.current.srcObject = videoStream;
-      console.log("📹 Video stream attached to element (delayed)");
-    }
-  }, [videoStream]);
+  console.log("🔍 DIAG: attach-effect fired", {
+    hasVideoRef: !!videoRef.current,
+    hasVideoStream: !!videoStream,
+    alreadyHasSrcObject: !!(videoRef.current && videoRef.current.srcObject),
+    loading,
+    quizSubmitted,
+  });
+  if (videoRef.current && videoStream && !videoRef.current.srcObject) {
+    videoRef.current.srcObject = videoStream;
+    videoRef.current
+      .play()
+      .then(() => console.log("📹 Video stream attached AND playing"))
+      .catch((e) => console.error("📹 video.play() failed:", e.name, e.message));
+  }
+}, [videoStream, loading, quizSubmitted]);
 
   // Show hint bulb after 10 seconds (for both camera allowed and denied)
   useEffect(() => {
@@ -302,60 +309,55 @@ const QuizPage = () => {
     }
   };
 
-  // Request webcam permission and start emotion tracking
   const requestCameraPermission = async () => {
-    try {
-      setCameraPermissionLoading(true);
-      console.log(
-        "📷 AI: Requesting webcam permission for emotion tracking...",
-      );
+  try {
+    setCameraPermissionLoading(true);
+    console.log("📷 AI: requestCameraPermission() STARTED");
 
-      // Initialize AI socket connection when user actually requests camera
-      await initializeAI();
+    await initializeAI();
+    console.log("📷 AI: initializeAI() finished");
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 224, height: 224 },
+    console.log("📷 AI: calling getUserMedia()...");
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 224, height: 224 },
+    });
+    console.log("📷 AI: getUserMedia() SUCCEEDED", {
+      streamId: stream.id,
+      tracks: stream.getTracks().map((t) => ({ kind: t.kind, readyState: t.readyState, enabled: t.enabled })),
+    });
+
+    setWebcamEnabled(true);
+    setVideoStream(stream);
+    setCameraPermissionDenied(false);
+    setShowCameraPermissionDialog(false);
+
+    console.log("📷 AI: checking videoRef.current at attach time:", {
+      videoRefExists: !!videoRef.current,
+      videoRefTagName: videoRef.current?.tagName,
+    });
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      console.log("📷 AI: srcObject assigned. Verifying:", {
+        srcObjectSetSuccessfully: !!videoRef.current.srcObject,
       });
-
-      // Set webcam enabled immediately when permission is granted
-      setWebcamEnabled(true);
-      setVideoStream(stream);
-      setCameraPermissionDenied(false);
-      setShowCameraPermissionDialog(false);
-      console.log(
-        "✅ AI: Webcam permission granted - emotion tracking active - AI hints enabled",
-      );
-
-      // Attach stream to video element if available
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        console.log("📹 Video stream attached to element");
-      }
-    } catch (err) {
-      console.log(
-        "⚠️ AI: Webcam permission denied or device not found - falling back to manual mode - teacher hints only",
-      );
-      console.error("📷 Camera error details:", err.name, err.message);
-
-      // Handle NotFoundError (no camera device) same as denied permission
-      if (err.name === "NotFoundError") {
-        console.log("📷 No camera device found on this system");
-      } else if (err.name === "NotAllowedError") {
-        console.log("📷 User denied camera permission");
-      } else if (err.name === "NotReadableError") {
-        console.log("📷 Camera device is in use by another application");
-      }
-
-      setCameraPermissionDenied(true);
-      setWebcamEnabled(false);
-      setShowCameraPermissionDialog(false);
-    } finally {
-      setCameraPermissionLoading(false);
-      console.log(
-        `🎯 CAMERA PERMISSION CHECK: Permission request completed. State will update shortly.`,
-      );
+      videoRef.current
+        .play()
+        .then(() => console.log("📹 Video stream attached AND playing"))
+        .catch((e) => console.error("📹 video.play() failed:", e.name, e.message));
+    } else {
+      console.error("📷 AI: ⚠️ videoRef.current was NULL at attach time — this is the bug");
     }
-  };
+  } catch (err) {
+    console.log("⚠️ AI: getUserMedia FAILED or permission denied");
+    console.error("📷 Camera error details:", err.name, err.message);
+    setCameraPermissionDenied(true);
+    setWebcamEnabled(false);
+    setShowCameraPermissionDialog(false);
+  } finally {
+    setCameraPermissionLoading(false);
+  }
+};
 
   // Capture and send emotion snapshot every 60 seconds
   useEffect(() => {
@@ -366,10 +368,20 @@ const QuizPage = () => {
     const user = JSON.parse(userStr);
 
     const captureEmotion = () => {
-      if (!videoRef.current) {
-        console.log("📸 AI: No video ref, skipping emotion capture");
-        return;
-      }
+  if (!videoRef.current) {
+    console.log("📸 AI: No video ref, skipping emotion capture");
+    return;
+  }
+  if (videoRef.current.readyState < 2) {
+  console.log("📸 AI: Video not ready — DIAG:", {
+    readyState: videoRef.current.readyState,
+    hasSrcObject: !!videoRef.current.srcObject,
+    videoWidth: videoRef.current.videoWidth,
+    videoHeight: videoRef.current.videoHeight,
+    paused: videoRef.current.paused,
+  });
+  return;
+}
 
       const canvas = document.createElement("canvas");
       canvas.width = 224;
@@ -2718,16 +2730,21 @@ className={`
         </div>
       )}
 
-      {/* Hidden webcam video for AI emotion tracking */}
-      {!quizSubmitted && !showResults && webcamEnabled && (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{ display: "none" }}
-        />
-      )}
+      {/* Hidden webcam video for AI emotion tracking — always mounted so
+    videoRef.current is never null when a stream needs to attach */}
+<video
+  ref={videoRef}
+  autoPlay
+  playsInline
+  muted
+  style={{
+    position: "fixed",
+    top: "-9999px",
+    left: "-9999px",
+    width: "1px",
+    height: "1px",
+  }}
+/>
     </div>
   );
 };

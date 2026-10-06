@@ -1,0 +1,282 @@
+[
+  {
+    "_id": "6948544960adcbbc5971e7f9",
+    "sessionId": "quiz_1766347831475_gpgrydpx5",
+    "questionIndex": 0,
+    "hintText": "A database is used to organize and keep track of information in a structured way. Think about how you'd save and find personal records—like contacts or shopping lists—what would make that process fast and reliable?",
+    "deduction": 1
+  },
+  {
+    "_id": "696dde71e71ed842f019a208",
+    "sessionId": "quiz_1768807989964_cb5ggqzp8",
+    "questionIndex": 1,
+    "hintText": "Think about what software does—programs that instruct a computer to perform tasks, rather than physical hardware devices. | Consider which of these items runs on the computer and controls how other programs and hardware work. | The operating system is a type of software that manages computer resources and allows applications to run. | Among the options, only one is a program that runs on the computer, not a physical device used for input or display.",
+    "deduction": 1
+  },
+  {
+    "_id": "696dd307b267d05030f00213",
+    "sessionId": "quiz_1768805095336_lm3pcvpv8",
+    "questionIndex": 0,
+    "hintText": "In an algebraic expression, a variable is a symbol that represents a value that can change. Look for a letter in the expression that stands for an unknown number. | The expression 5x + 8 includes numbers and a symbol between them—identify which part is not a constant number. | The number 5 and the number 8 are fixed values; they do not change, so they are not variables. | The letter 'x' is the only letter in the expression and is multiplied by 5—this makes it the quantity that can vary.",
+    "deduction": 1
+  },
+  {
+    "_id": "69940912d870db43957dcfc2",
+    "sessionId": "quiz_1771309314097_evorp0edl",
+    "questionIndex": 0,
+    "hintText": "Think about the fundamental concept being tested in this question. | Consider the key differences between each option carefully. | Focus on the specific terminology used in the question. | Review the core principles related to this topic.",
+    "deduction": 1
+  },
+  {
+    "_id": "69844358b41e5eaa53c85def",
+    "sessionId": "quiz_1770275654234_g9nj3ve81",
+    "questionIndex": 0,
+    "hintText": "Think about the fundamental concept being tested in this question. | Consider the key differences between each option carefully. | Focus on the specific terminology used in the question. | Review the core principles related to this topic.",
+    "deduction": 1
+  },
+  {
+    "_id": "696f47d7446eef47b524cf5a",
+    "sessionId": "quiz_1768900488947_g392sf1k4",
+    "questionIndex": 2,
+    "hintText": "Think about what happens when you type on a keyboard or enter numbers into a program—what part of the computer is receiving that information? | Devices that send data out of the computer, like a printer or monitor, are called output devices—so this is not about sending information out. | Devices that store data, like a hard drive or USB stick, are storage devices—this is not about saving information. | The correct answer is a device that receives commands or data from a user, such as typing or clicking—this matches the definition of an input device.",
+    "deduction": 1
+  },
+  {
+    "_id": "694907d7dd69912b2166a8b9",
+    "sessionId": "quiz_1766393779781_tjiw620i4",
+    "questionIndex": 1,
+    "hintText": "Think about everyday devices you use to type or enter information into a computer. | Consider which of these devices sends signals or commands directly to the computer's processing unit. | Eliminate options that display or output information rather than sending input. | The correct answer is a device you typically press keys on to enter text or commands.",
+    "deduction": 1
+  },
+  {
+    "_id": "69770822fce6c22786250716",
+    "sessionId": "quiz_1769408528595_5twlrlzij",
+    "questionIndex": 0,
+    "hintText": "Think about which part of a computer is responsible for running programs and carrying out basic arithmetic and logical operations. | Consider the component that receives instructions from software and processes them step by step, like a person performing tasks in a sequence. | The term \"brain\" suggests a central unit that controls and manages the overall operation of the computer, not just storing data or handling visuals. | Among the options, only one component is specifically designed to execute machine code and perform calculations directly—this is the key clue.",
+    "deduction": 1
+  },
+  {
+    "_id": "696746e22b00f0e700c4b111",
+    "sessionId": "quiz_1768376015661_8y3gs1rn5",
+    "questionIndex": 0,
+    "hintText": "Think about which part of a computer is responsible for carrying out the actual processing tasks, like running programs and performing math operations. | Consider that this component receives instructions from software and then executes them step by step, similar to how a human brain processes thoughts. | Among the options, one part is specifically designed to perform calculations and manage data flow between other components. | The correct answer is a component that's commonly described as the \"brain\" of the computer and is typically found at the center of the motherboard.",
+    "deduction": 1
+  },
+  {
+    "_id": "6969d970b3960521e4bc29e1",
+    "sessionId": "quiz_1768544596146_14t9v7q1e",
+    "questionIndex": 0,
+    "hintText": "Think about how data is stored and shared in a system—what problem does a DBMS solve compared to storing files on individual computers or drives? | Consider how duplicate data might appear across different files and how that could lead to inconsistencies or errors in a system. | A key advantage of a DBMS involves managing data efficiently and ensuring that all parts of a system use the same version of the data—this relates to how data is organized and accessed. | Among the options, only one directly addresses how a DBMS improves data integrity and eliminates unnecessary duplication—focus on that core function.",
+    "deduction": 1
+  },
+  {
+    "_id": "69a47f34c9d2d9d6bb198bd4",
+    "sessionId": "quiz_1772388106800_mdwpjktst",
+    "questionIndex": 0,
+    "hintText": "Think about the fundamental concept being tested in this question. | Consider the key differences between each option carefully. | Focus on the specific terminology used in the question. | Review the core principles related to this topic.",
+    "deduction": 1
+  },
+  {
+    "_id": "696dcde4c081b28979dfbc81",
+    "sessionId": "quiz_1768803780516_ap5oalxsh",
+    "questionIndex": 1,
+    "hintText": "Think about what software does — it runs on a computer and instructs it to perform tasks. | Physical devices like keyboards and monitors are hardware, not software. | The operating system is a type of program that manages computer resources and allows other software to run. | Among the options, only the operating system is a program that runs on the computer — it is the correct answer.",
+    "deduction": 1
+  },
+  {
+    "_id": "6a0bf03fc15a5ed9b1d255de",
+    "sessionId": "quiz_1779167215238_7gqw1feix",
+    "questionIndex": 2,
+    "hintText": "What do you already know about the core concept being tested here? | If you had to explain this topic to a friend in one sentence, what would you say? | Which options can you confidently eliminate based on what you know, and why? | What specific knowledge gap is making this question difficult for you?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "696dd338b267d05030f00223",
+    "sessionId": "quiz_1768805095336_lm3pcvpv8",
+    "questionIndex": 2,
+    "hintText": "Start by identifying the key phrase \"twice a number y\" — what does \"twice\" mean in algebraic terms? | Next, consider what \"four more than\" means — is it added to the result of \"twice a number y\"? | Look at the structure of the options: which one correctly places the \"2y\" and adds 4 after it? | Eliminate any options where the order or operations are incorrect — for example, does the 4 come before or after the multiplication?",
+    "deduction": 1
+  },
+  {
+    "_id": "694855e25399beb9e8e070bc",
+    "sessionId": "quiz_1766348205617_m9j7hzxgn",
+    "questionIndex": 1,
+    "hintText": "Think about what a database management system does—managing, storing, and retrieving structured data. | Consider which of these options is specifically designed to handle data storage and queries in a database format. | Eliminate options that are programming languages or general-purpose software, like HTML or Microsoft Word. | Focus on the option that is widely known as a relational database system used to store and manage data with tables and queries.",
+    "deduction": 1
+  },
+  {
+    "_id": "6969d970b3960521e4bc29df",
+    "sessionId": "quiz_1768544596146_14t9v7q1e",
+    "questionIndex": 0,
+    "hintText": "Think about how data is stored and shared in a system—what problem does a DBMS solve that traditional file systems do not? | Consider how multiple departments or users might store the same data in different files—what issue arises from this duplication? | A key advantage of a DBMS involves ensuring that data is accurate and consistent across all parts of a system—what term describes this? | The correct answer focuses on data organization and control, not user interface design or internet browsing features.",
+    "deduction": 1
+  },
+  {
+    "_id": "69ad4a7d143d9407180a1277",
+    "sessionId": "quiz_1772964360017_jbusz4fx4",
+    "questionIndex": 2,
+    "hintText": "What is the primary purpose of dynamic memory allocation in programming, and how does it relate to the given options? | Have you encountered a situation where you needed to allocate memory at runtime, and if so, which function did you use to achieve this? | Are there any key differences between the functions listed that might make one more suitable for allocating a block of memory than the others? | If you were to design a function to allocate memory, what characteristics would it need to have, and which of the given options aligns with those characteristics?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "6964b90c041c6c476fa7ac2d",
+    "sessionId": "quiz_1768208593121_5e8stpsbl",
+    "questionIndex": 1,
+    "hintText": "Think about what software does—does it run on a computer to perform tasks, manage operations, or provide instructions for hardware? | Consider whether the item is a physical device you can touch, like a keyboard or monitor, or something that exists as a set of instructions or programs. | Recall that computer software includes programs that control how a computer functions, such as what allows you to use the device or run applications. | The correct answer is a program that manages computer operations and enables other software to run—look for the choice that is not a hardware component.",
+    "deduction": 1
+  },
+  {
+    "_id": "69940935d870db43957dcfce",
+    "sessionId": "quiz_1771309314097_evorp0edl",
+    "questionIndex": 1,
+    "hintText": "Think about the fundamental concept being tested in this question. | Consider the key differences between each option carefully. | Focus on the specific terminology used in the question. | Review the core principles related to this topic.",
+    "deduction": 1
+  },
+  {
+    "_id": "6979a27ff288a2de9b6a6cb5",
+    "sessionId": "quiz_1769579095666_urfmd2k12",
+    "questionIndex": 1,
+    "hintText": "Think about the core component of a computer that carries out everyday tasks like running programs, performing calculations, and making decisions. | Consider which part of the computer is often referred to as the \"brain\" of the system. | The correct answer involves a unit that directly processes data and executes commands given by software. | The answer is a specific unit with a common acronym that includes the letters \"CPU\" and is responsible for both arithmetic and logical operations.",
+    "deduction": 1
+  },
+  {
+    "_id": "69aaef97188dfb7ebe0deefb",
+    "sessionId": "quiz_1772810117535_lp4llkj2n",
+    "questionIndex": 0,
+    "hintText": "Think about the fundamental concept being tested in this question. | Consider the key differences between each option carefully. | Focus on the specific terminology used in the question. | Review the core principles related to this topic.",
+    "deduction": 2.5
+  },
+  {
+    "_id": "694906c295e3d5e4502b0301",
+    "sessionId": "quiz_1766393522335_lpck35ypb",
+    "questionIndex": 0,
+    "hintText": "Think about common terms used in modern education and business to describe tools that help people share, store, and process information. | The acronym includes two key words: one related to information and another related to communication or technology. | One part of the acronym refers to gathering or managing data, and the other refers to how people or systems connect or exchange data. | The correct answer starts with \"Information\" and ends with \"Technology,\" and it is widely used in schools, offices, and daily life.",
+    "deduction": 1
+  },
+  {
+    "_id": "69485e8a5399beb9e8e074cc",
+    "sessionId": "quiz_1766350458284_6d45jezei",
+    "questionIndex": 0,
+    "hintText": "Think about what a database is commonly used for in everyday applications like social media, online shopping, or banking. | Consider what happens when you search for information online—how is that data organized and accessed? | Focus on the core function: a database doesn’t create programs or hardware, but rather handles information in a structured way. | The correct answer involves managing data in a way that allows quick and reliable access, especially when dealing with large amounts of information.",
+    "deduction": 1
+  },
+  {
+    "_id": "697905a1c8e49801ef42db2c",
+    "sessionId": "quiz_1769538959881_qkc0noiti",
+    "questionIndex": 0,
+    "hintText": "Think about what happens when a computer performs a task—what components work together and how instructions are executed. | Computer Architecture is not about what software you install or how chips are made at the atomic level. | Focus on how the system is structured: how data flows, how instructions are processed, and how hardware components interact. | The correct answer describes the system's internal design and operational behavior, not external connections or software.",
+    "deduction": 1
+  },
+  {
+    "_id": "694d84f9a665ca65af5984b7",
+    "sessionId": "quiz_1766687974754_gogtzm7jk",
+    "questionIndex": 0,
+    "hintText": "Think about common terms used in computer science and database technologies—what are the typical prefixes and suffixes associated with systems that manage data? | The acronym starts with \"A\" and ends with \"MS\" — consider what kind of system is commonly referred to in database and IT contexts that involves managing data. | Look at the options and eliminate those that describe non-standard or less likely roles, such as backup or application-specific systems. | The correct term relates to a system that manages databases using advanced features like data organization, access control, and query processing.",
+    "deduction": 1
+  },
+  {
+    "_id": "69787aa26d130d5a7a21eae2",
+    "sessionId": "quiz_1769503377755_uayto9s4y",
+    "questionIndex": 0,
+    "hintText": "Look at the pattern in the options and consider what makes each choice distinct in length and repetition. | Notice that both options start with the same sequence: \"fef\". | The first option repeats \"fef\" multiple times, while the second is just \"fef\" once. | The question may be testing your ability to identify the simplest or most minimal valid answer.",
+    "deduction": 1
+  },
+  {
+    "_id": "69b31fca7d2122c89fa2f599",
+    "sessionId": "quiz_1773346739263_z6tscptcm",
+    "questionIndex": 0,
+    "hintText": "What is the basic structure that organizes data in a relational database, and how do individual elements fit into it? | Have you encountered terms like \"record\" or \"entry\" in other contexts, and could they be related to the concept you're trying to identify? | Are you assuming that the term you're looking for refers to a single piece of data, or could it represent a collection of related data points? | Would the term you choose be used to describe a horizontal or vertical arrangement of data within the table?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "69ab93e70e5290f3e1c1ea4a",
+    "sessionId": "quiz_1772850871948_gr864925h",
+    "questionIndex": 1,
+    "hintText": "What are the fundamental components involved in declaring and initializing a variable in C? | How do you typically define and access the members of a struct in C programming? | Are there any potential issues with the way memory is being managed in some of the given options? | What would happen if you tried to assign a value to a struct member without properly declaring the struct variable first?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "6964b7d8845513a233f58450",
+    "sessionId": "quiz_1768208326530_i165zq8ty",
+    "questionIndex": 0,
+    "hintText": "Think about which part of a computer is responsible for running programs and carrying out basic arithmetic and logical operations. | Consider the component that directly interprets and executes instructions from software, like when you open an app or run a calculation. | This part is not just for storing data long-term, nor is it primarily for displaying images—what's it actually doing in real time? | The name of this component includes the word \"central\" and \"processing\"—it's often called the \"brain\" of the computer.",
+    "deduction": 1
+  },
+  {
+    "_id": "694d8527a665ca65af5984c7",
+    "sessionId": "quiz_1766687974754_gogtzm7jk",
+    "questionIndex": 1,
+    "hintText": "Think about a common tool used to ask questions to a database, such as \"show me all customers\" or \"find records where age is over 30.\" | This language is specifically designed for managing and querying structured data stored in tables. | It is often used in conjunction with database management systems like MySQL, PostgreSQL, or Oracle. | The language uses commands like SELECT, INSERT, UPDATE, and DELETE to retrieve, add, modify, or remove data.",
+    "deduction": 1
+  },
+  {
+    "_id": "6979ab043678786eeca371a6",
+    "sessionId": "quiz_1769581298477_bdmwbbmjx",
+    "questionIndex": 0,
+    "hintText": "Think about what makes a computer perform tasks—how components work together to process data, execute instructions, and communicate. | Consider whether the focus is on how the computer functions internally, like how data moves between parts or how instructions are carried out. | Eliminate options that refer to software, physical manufacturing, or network connections—what’s being asked is about the system's design and operation. | The correct answer describes how the computer is structured and behaves at a functional level, not just its physical parts or external connections.",
+    "deduction": 1
+  },
+  {
+    "_id": "6a0be23fc15a5ed9b1d0e7a7",
+    "sessionId": "quiz_1779163691230_3l94pgkkr",
+    "questionIndex": 0,
+    "hintText": "What is the main purpose of having a unique identifier for each record in a table? | How do you think database designers determine which field or fields should serve as the main identifier? | Can a single table have multiple keys that could potentially serve as the principal identifier, and if so, what implications might this have? | What would be the consequences of choosing a key that does not uniquely identify each record in the table?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "6980563d24f94ee7bfc2754c",
+    "sessionId": "quiz_1770018344997_d847ikkwm",
+    "questionIndex": 1,
+    "hintText": "Think about the fundamental concept being tested in this question. | Consider the key differences between each option carefully. | Focus on the specific terminology used in the question. | Review the core principles related to this topic.",
+    "deduction": 1
+  },
+  {
+    "_id": "6979a2bc75fd0d2b63e5b5d2",
+    "sessionId": "quiz_1769579174441_h8uxsw3l4",
+    "questionIndex": 0,
+    "hintText": "Think about what happens when a computer performs a task—how instructions are executed and components work together. | Consider the role of components like the CPU, memory, and input/output devices in carrying out operations. | Focus on how the system is structured and how different parts interact to perform computations. | The correct answer is not about how chips are made or what software is installed, but rather about the design and function of the system as a whole.",
+    "deduction": 1
+  },
+  {
+    "_id": "6a0be570c15a5ed9b1d11698",
+    "sessionId": "quiz_1779164474368_fvtjusm4d",
+    "questionIndex": 2,
+    "hintText": "What distinguishes software from other components in a computer system? | Have you encountered any examples in the past where a component was clearly classified as software, and what characteristics did it have? | Are there any assumptions you're making about the nature of software that might be influencing your interpretation of the options provided? | How would you categorize each of the given options in terms of their functionality and purpose within a computer system?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "6979a268f288a2de9b6a6cab",
+    "sessionId": "quiz_1769579095666_urfmd2k12",
+    "questionIndex": 0,
+    "hintText": "Think about what happens when a computer performs a basic task—like running a program or processing data—what components work together and how they interact. | Consider whether the focus is on how the hardware is built or on how it functions and communicates with software. | Look for the option that describes how the computer's internal structure enables it to execute instructions and manage data. | The correct answer emphasizes the design and operation of the system, not its physical construction or software setup.",
+    "deduction": 1
+  },
+  {
+    "_id": "6a0b6784dc3b1ea6069253e3",
+    "sessionId": "quiz_1779132260326_amjm65s4b",
+    "questionIndex": 0,
+    "hintText": "What is the fundamental concept that algorithms are designed to achieve in computer science? | How do you think the concept of a \"procedure\" or a \"set of instructions\" relates to algorithms? | Would an algorithm be necessary if a computer could simply guess the solution to a problem? | Can you think of a simple, everyday task that requires a step-by-step approach to accomplish, and how might that relate to the purpose of an algorithm?",
+    "deduction": 2.5
+  },
+  {
+    "_id": "6964bb09c4123e51474c978c",
+    "sessionId": "quiz_1768209031648_shcycgbvo",
+    "questionIndex": 3,
+    "hintText": "Think about what part of a computer holds information even when the power is off—something that doesn't lose data when the machine is shut down. | RAM is fast but loses all data when the computer is turned off; this means it's not the correct answer. | The CPU is responsible for processing instructions, not storing data long-term. So it's not the right choice. | Cache memory is small and used for quick access during operation, but it's not designed for permanent storage. The correct answer is a storage device that retains data after power is off.",
+    "deduction": 1
+  },
+  {
+    "_id": "696743c5d87ef082a29b3167",
+    "sessionId": "quiz_1768374961271_4jh0rjkw3",
+    "questionIndex": 0,
+    "hintText": "Think about which part of a computer is primarily responsible for running programs and processing data based on instructions. | This component receives data and commands from other parts of the system and performs the actual calculations needed to run applications. | It's not where data is stored long-term, nor is it just for displaying images or storing files—what part handles the core computational tasks? | The correct answer is a component that is commonly described in computing terms as the \"brain\" of the computer, directly executing software instructions.",
+    "deduction": 1
+  },
+  {
+    "_id": "69770e5f6cd64f74a2c031b0",
+    "sessionId": "quiz_1769410125773_0q905fm1y",
+    "questionIndex": 0,
+    "hintText": "Think about which part of a computer is responsible for running programs and carrying out basic arithmetic and logical operations. | This component receives instructions from software and processes them step by step, like a human performing tasks in a sequence. | It's not the storage device (like a hard drive) or the memory used for temporary data (like RAM), but rather the core unit that performs actual computations. | The correct answer is commonly known by a short name that literally includes the word \"processor\" and is often described as the \"central\" part of the computer.",
+    "deduction": 1
+  }
+]
